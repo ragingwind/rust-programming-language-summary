@@ -206,7 +206,7 @@ Single value: integers, floating-point numbers, Booleans, and characters
 Group multiple values into one type, tuple and arrays
 
 - The Tuple Type, fixed length, once declared, cannot grow or shirnk in size
-```
+```rust
 // decalration
 let tup: (i32, f64, u8) = (500, 6.4, 1);
 
@@ -221,7 +221,7 @@ let (x, y, z) = tup;
 ```
 
 - The Array Type, collection of multiple values with the same type, fixed length unlike other languages.
-```
+```rust
 // declaration
 let a = [1, 2, 3, 4, 5];
 let b: [i32; 5] = [1, 2, 3, 4, 5];
@@ -239,7 +239,7 @@ let run_time_error = a[index];
 - Using snake case
 - Defining function anywhere
 - Parameters
-```
+```rust
 fn another_function(x) {
   println!("The value of x is: {}", x);
 }
@@ -249,7 +249,7 @@ fn another_function(y: i32) {
 }
 ```
 - Statements and Expressions
-```
+```rust
 fn main() {
   let x = 5;
   let y = {
@@ -261,7 +261,7 @@ fn main() {
 }
 ```
 - Functions with Return Values
-```
+```rust
 fn five() -> i32 {
   5 // end of expression without return
 }
@@ -276,5 +276,354 @@ fn return_x(x: i32) -> i32 {
   }
 
   x
+}
+```
+
+## Comments
+
+- Commenting with two slashes and continue until the end of line
+
+## Control Flow
+
+- if expression
+```rust
+let number = 3;
+if number < 5 {
+  println!("number is under 5");
+} else {
+   println!("number isnot under 5");
+}
+
+// error
+if number {
+  ...
+}
+
+// fix it
+if number != 0 {
+  ...
+}
+
+// else if
+if number != 0 {
+  ...
+} else if number % 2 {
+  ...
+}
+
+// if in a let statement
+let condition = true;
+let number = if confition {
+  5 // must be same type returns
+} else {
+  6
+}
+```
+
+- Repeatition with Loops
+```rust
+fn main() {
+  let mut counter = 0;
+  let result = loop {
+    counter += 1;
+
+    println!("again!");
+
+    if counter == 10 {
+      break counter * 2
+    }
+  }
+}
+```
+
+- Contitional Loops with while
+```rust
+fn main() {
+  let mut number = 3;
+  while number != 0 {
+    println!("again!");
+    number = number - 1;
+  }
+}
+```
+
+- Looping Through a Collection with for
+```rust
+fn main() {
+  let a = [10, 20, 30, 40, 50];
+  for element in a.iter() {
+    println!("val is {}", element);
+  }
+
+  for number in (1..4).rev() {
+    println!("val is {}", number);
+  }
+}
+```
+
+# Understanding Ownership
+
+- To enables Rust to make memory safety guarantees without needing a garbage collector. 
+- In Ruet, memory is managed through a system of ownership with a set of rules that compiler checks at compile time
+
+## What is Ownership?
+
+### Ownership Rules
+
+- Each value in Rust has a variable that's called its owner
+- There can only be one owner at a time
+- When the owner goes out of scope, the value will be dopped
+
+### Variable Scope
+
+```rust
+{ // s is not valid here, it's not yet declared
+  let s = "hello";
+} // this scope is over, and s is no longer valid
+```
+
+### The String Type
+
+```rust
+let s = String::from("hello"); // string is allocated on the heap
+
+let mut s2 = String::from("hello");
+s2.push_str(", world!");
+```
+
+### Memory and Allocation
+
+```rust
+{
+  let s = String::from("hello"); // s is valid from this point forward
+  ...
+} // this scope is now over, s goes out of scope, and s is no longer valid
+```
+
+### Ways Variables and Data Interact: Move
+
+```rust
+let s1 = String::from("hello"); // s1 has string data(ptr, len, capacity)
+
+let s2 = s1; // s1 string data is moved to s2, Rust invalidate s1
+
+println!("{}, world!", s1); // error, string data has been moved to s2
+```
+
+### Ways Variables and Data Interact: Clone
+
+```rust
+let s1 = String::from("hello");
+let s2 = s1.clone();
+
+println!("s1 = {}, s2 = {}", s1, s2);
+```
+
+### Stack-Only Data: Copy
+
+```rust
+let x = 5;
+let y = x; // x is stil valid after x moved to y
+
+println!("x = {}, y = {}", x, y)
+```
+
+#### Copy rules
+
+- All the integer types, such as `u32`
+- The Boolean type `bool`, with values `true` and `false`
+- All the floating point type, such as `f64`
+- The character type `char`
+- Tuples, if they only contain types that are also `Copy`. For example, `(i32, i32)` is `Copy` but `(i32, string)` is not
+
+### Ownership and Function
+
+- Passing a variable to a function will `move or copy`, just as assgiment does
+
+```rust
+fn main() {
+  let s = String::from("hello"); // s comes into scope
+
+  // s's value moves into the function
+  // s is no longer valid
+  takes_ownership(s);
+
+  let x = 5; // x comes into scope
+
+  // x would move into the function
+  // but i32 is Copy, so it's ok to use x afterward
+  makes_copy(x);
+}
+
+fn takes_ownership(some_string: String) { // some_string comes into scope
+  println!("{}", some_string);
+} // some_string goes out of scope and drop, `the backing memory is freed`
+
+fn makes_copy(some_integer: i32) { // some_integer comes into scope
+  println!("{}", some_integer);
+} // some_integer goes out of scope. `Nothing special happens.`
+```
+
+### Return Values and Scope
+
+- Returning values can also transfer ownership
+
+```rust
+fn main() {
+  // gives_ownership moves its return value into s1
+  let s1 = gives_ownership();
+
+  // s2 comes into scope
+  let s2 = String::from("hello");
+
+  // 1. s2 is moved into takes_and_gives_back
+  // 2. takes_and_gives_back moves its return value into s3
+  let s3 = takes_and_gives_back(s2);
+} // s3 goes out of scope, and is dropped
+  // s2 goes out of scope, but was moved, so nothing happens
+  // s1 goes out of scope, and it dropped
+
+fn gives_ownership() -> String {
+  let some_string = String::from("hello");
+
+  // some_string is returned and moves out to the calling function
+  some_string
+}
+
+fn takes_and_givs_back(a_string: String) -> String {
+  // a_string is returned and moves out to the calling function
+  a_string
+}
+```
+
+### Returning with Tuple
+
+```rust
+fn main() {
+  let s1 = String::from("hello");
+
+  let (s2, len) = calculate_length(s1);
+
+  println!("The length of '{}' is {}.", s2, len);
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+  let length = s.len();
+
+  (s, length)
+}
+```
+
+## References and Borrowing
+
+```rust
+fn main() {
+  let s1 = String::from("hello");
+  // reference, it does not own it
+  // s1 will not be dropped when the reference goes out of scope
+  let len = calculate_length(&s1);
+
+  println!("{}, {}", s1, len);
+}
+
+fn calulate_length(s: &String) -> usize {
+  // https://doc.rust-lang.org/book/img/trpl04-05.svg
+  s.len()
+}
+```
+
+### Mutable References
+
+```rust
+fn main() {
+  let mut s = String::from("hello");
+
+  change(&mut s);
+  cannot_change(&s);
+}
+
+fn canot_change(some_string: &String) {
+  // cannot borrow immutable borrowed content
+  some_string.push_ptr(", world"); // ERROR!
+}
+
+fn change(some_string: &mut String) {
+  some_string.push_ptr(", world");
+}
+```
+
+- But mutable refernces have one big restriction: you can only have one mutable reference to a particular piece of data in particular scope. The benefit of having this restriction is that Rust can prevent data races at compile time. This code will fail:
+
+
+```rust
+let mut s = String:from("hello");
+
+let r1 = &mut s;
+let r2 = &mut s;
+
+println!("{}, {}", r1, r2);
+```
+
+- Multiple mutable refernes by creating a new scope
+
+```rust
+let mut s = String:from("hello");
+
+{
+  let r1 = &mut s;
+} // r1 goes out of scope here, now we can make a new reference
+
+let r2 = &mut s;
+```
+
+- Immutable references, Cannot have a mutable reference while we have an immutable one.
+
+```rust
+let mut s = String::from("hello");
+
+let r1 = &s;
+let r2 = &s;
+let r3 = &mut s; // ERROR!
+```
+
+### Dangling References
+
+- In Rust, the compiler guarantees that references will never be dangling reference
+
+```rust
+fn main() {
+  let reference_to_nothing = dangle();
+}
+
+fn dangle() -> &String {
+  let s = String::from("hello"); // s is a new String in dangle
+
+  &s // ERROR! missing lifetime specifier
+} // s goes out of scope, and is dropped. It's memory goes away
+
+fn no_dangle() -> String {
+  let s = String::from("hello");
+
+  s
+}
+```
+
+## The Slice Type
+
+- Slice doesn't have ownership
+- Slice let you reference a contiguous sequence of elements in a colleaction rather than the whole collection
+
+```rust
+fn first_work(s: &String) -> usize {
+  let bytes = s.as_bytes();
+
+  // use reference
+  for (i, &item) in bytes.iter().enumerate() {
+    if item == b' ' {
+      return i;
+    }
+  }
+
+  s.len()
 }
 ```
