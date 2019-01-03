@@ -614,7 +614,7 @@ fn no_dangle() -> String {
 - Slice let you reference a contiguous sequence of elements in a colleaction rather than the whole collection
 
 ```rust
-fn first_work(s: &String) -> usize {
+fn first_word(s: &String) -> usize {
   let bytes = s.as_bytes();
 
   // use reference
@@ -626,4 +626,102 @@ fn first_work(s: &String) -> usize {
 
   s.len()
 }
+
+fn main() {
+  let mut s = String::from("hello world");
+  let word = first_word(&s);
+  s.clear(); // empties the String, making it euqal to ""
+}
+```
+
+### String Slices
+
+- string slice is a reference to part of a String
+
+```rust
+let s = String::from("hello world");
+
+// = not including `end`
+let hello = &s[0..5];
+let world = &s[6..11];
+
+// = including end
+let hello = &s[0..=4];
+let world = &s[6..=10];
+
+// with ...
+let slice = &s[0..2];
+let slice = &s[..2];
+
+// drop the tralling number
+let let = s.len();
+
+let slice = &s[3..len];
+let slice = &s[3..];
+
+// both drop
+let slice = &s[0..len];
+let slice = &s[..];
+```
+
+- Attemping to creat a string slice in the middle of a multibyte character, it program will exit with an error
+- Revision of `first_word`
+
+```rust
+fn first_word(s: &String) -> &str {
+  let bytes = s.as_bytes();
+
+  for (i, &item) in bytes.iter().enumerate() {
+    if (item == b' ') {
+      return &s[0..i];
+    }
+  }
+
+  &s[..]
+}
+```
+
+- If we have an immutable reference to something, we `cannot` also take a mutable reference
+
+```rust
+fn main() {
+  let mut s = String::from("hello world");
+  let word = first_word(&s); // immutable borrow occurs here
+
+  s.clear() // error, mutable borrow occurs here
+
+  println!("the first word is: {}", word); // borrow later used here
+}
+```
+
+- String literals are slices
+
+```rust
+let s = "Hello, world!"; // s is &str, slice pointing, immutable reference
+```
+
+- String Slices as Paramters
+```rust
+// We can pass string slice directly or
+// slice of the entire String
+fn first_word(s: &str) -> &str {
+  ...
+}
+
+fn main() {
+  let my_string = String::from("hello world");
+  let word = first_word(&my_string[..]);
+
+  let my_string_literal = "hello world";
+  let word = first_word(&my_string_literal[..]);
+  // string literals are string slice
+  let word = first_word(my_string_literal);
+}
+```
+
+- Other slices, this slice has the type `&[i32]`, works the same way as string slice do
+
+```rust
+let a = [1, 2, 3, 4, 5];
+let slice = &a[1..3];
 ```
