@@ -730,3 +730,90 @@ let slice = &a[1..3];
 
 ## Defining and Instantiation Structs
 
+- the pieces of a struct can be different type, can be named
+
+```rust
+struct User {
+  username: String,
+  email: String,
+  sign_in_count: u64,
+  active: bool
+}
+```
+- create an instance by specifying concreat values
+
+```rust
+let user1 = User {
+  email: String::from("someone@example.com"),
+  username: String::from("someone"),
+  active: true,
+  sign_in_count: 1,
+}
+```
+
+- get value with dot notation. it the instance is mutable, we can change a value by using the dot notation
+- certain field as mutable is not allowed
+
+```rust
+let mut user1 = User {
+  email: String::from("someone@example.com"),
+  username: String::from("someone"),
+  active: true,
+  sign_in_count: 1,
+}
+
+user1.email = String::from("someone@example.com");
+```
+
+- builder function
+
+```rust
+// implicity return that new instance
+
+fn build_user(email: String, username: String) -> User {
+  User {
+    email: email,
+    username: username,
+    active: true,
+    sign_in_count: 1,
+  }
+}
+
+// shorthand version
+fn build_user(email: String, username: String) -> User {
+  email,
+  username,
+  active: true,
+  sign_in_count: 1,
+}
+```
+
+- creating instances from other instnace with update value, or struct update syntax
+
+```rust
+let user2 = User {
+  email: String::from("another@example.com"),
+  username: String::from("another"),
+  active: user1.active,
+  sign_in_count: user1.sign_in_count
+};
+
+// using struct update syntax `..`
+let user2 = User {
+  email: String::from("another@example.com"),
+  username: String::from("another"),
+  ..user1
+}
+```
+
+- tuple structs, can add meaning the struct name but not names associated with their field
+
+```rust
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+let black = Color(0, 0, 0);
+let origin = Point(0, 0, 0);
+```
+
+- unit-like structs, don't have any fileds, behave simliarly to `()`
