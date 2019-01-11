@@ -16,7 +16,7 @@
 - Run `$ curl https://sh.rustup.rs -sSf | sh`
 - Add the following line to your env `export PATH="$HOME/.cargo/bin:$PATH"`
 - If installation is already done, run `rustup update`
-    - To uninstall, `rustup self uninstall`
+  - To uninstall, `rustup self uninstall`
 
 ## Hello, World!
 
@@ -35,15 +35,18 @@ $ ./main
 - Cargo is Rust's build system and package manager
 - `cargo new $PROJECT_NAME —bin`
 - TOML format using in Cargo.toml
+
 ```rust
   [package]
   name = "hello_cargo"
   version = "0.1.0"
   authors = ["Your Name <you@name.com>"]
-  
+
   [dependencies]
 ```
+
 - commands
+
 ```rust
 # build
 $ cargo build
@@ -54,20 +57,26 @@ cargo check
 # run
 $ ./target/debug/hello_cargo
 or
-$ cargo run 
+$ cargo run
 ```
+
 # Programming a Guessing Game
 
 - Create a new project and run
+
 ```
 $ cargo new guessing_game --bin
-$ cargo ru 
+$ cargo ru
 ```
+
 - Standard library
+
 ```
 use std::io
 ```
+
 - Storing values with variables
+
 ```
 let mut guess = String::new();
 let foo = bar
@@ -78,21 +87,26 @@ let mut bar = 4; // mutable
 - Handling potential failure
   - `Result` types are enumerations
   - without `except`, you will see warning
+
 ```rust
 // using exepct for io::Result type
 io::stdin().read_line(&mut guess)
 ​	.expect("Failed to read line");
 ```
+
 - `{}` is placeholder to print variable
+
 ```rust
 let x = 5;
 let y = 10;
 
 println!("x = {} and y = {}", x, y);
 ```
+
 - Add dependencies
-    - `cargo build` to install dependencies
-    - `cargo update` to update dependencies
+  - `cargo build` to install dependencies
+  - `cargo update` to update dependencies
+
 ```
 // in Cargo.toml
 [dependencies]
@@ -101,30 +115,39 @@ rand = "0.3.14"
 ```
 
 - Using dependencies
+
 ```
 extern crate rand;
 use rand:Rng;
 ```
+
 - `match` expression
+
 ```
 use std:cmp::Ordering;
 
 match guess.cmp(&cecret_number) {
-​   Ordering::Less => println!("Too small!"),	
+​   Ordering::Less => println!("Too small!"),
 ​   Ordering::Greater => println!("Too big!"),
 ​   Ordering::Equal => println!("Too win!"),
 }
 ```
+
 - Convert value
+
 ```
 let guess: u32 = guess.trim().parse().expect("Error");
 ```
+
 - Loop
+
 ```
 loop {
 }
 ```
+
 - Quit the loop
+
 ```
 match guess.cmp(&secret_number) {
     Ordering::Less => println!("Too small!"),
@@ -135,7 +158,9 @@ match guess.cmp(&secret_number) {
     }
 }
 ```
+
 - Handling invalid value
+
 ```
 let guess: u32 = match guess.trim().parse() {
 ​    Ok(num) => num,
@@ -159,6 +184,7 @@ let guess: u32 = match guess.trim().parse() {
 ## Shadowing
 
 - Without `let` we will get compile error
+
 ```rust
 fn main() {
     let x = 5;
@@ -166,11 +192,12 @@ fn main() {
     let x = x * 2;
 
     // (5 + 1) * 2 = 12
-    println!("The value of x is: {}", x); 
+    println!("The value of x is: {}", x);
 }
 ```
 
 - We can change the type, reuse the same name
+
 ```rust
 // reuse the variable with the another type
 let spaces = "   "; // string type
@@ -183,7 +210,7 @@ spaces = spaces.len();
 
 ## Data Types
 
-###  Scalar Types
+### Scalar Types
 
 Single value: integers, floating-point numbers, Booleans, and characters
 
@@ -206,6 +233,7 @@ Single value: integers, floating-point numbers, Booleans, and characters
 Group multiple values into one type, tuple and arrays
 
 - The Tuple Type, fixed length, once declared, cannot grow or shirnk in size
+
 ```rust
 // decalration
 let tup: (i32, f64, u8) = (500, 6.4, 1);
@@ -221,6 +249,7 @@ let (x, y, z) = tup;
 ```
 
 - The Array Type, collection of multiple values with the same type, fixed length unlike other languages.
+
 ```rust
 // declaration
 let a = [1, 2, 3, 4, 5];
@@ -239,6 +268,7 @@ let run_time_error = a[index];
 - Using snake case
 - Defining function anywhere
 - Parameters
+
 ```rust
 fn another_function(x) {
   println!("The value of x is: {}", x);
@@ -248,7 +278,9 @@ fn another_function(y: i32) {
   println!("The value of y is: {}", y);
 }
 ```
+
 - Statements and Expressions
+
 ```rust
 fn main() {
   let x = 5;
@@ -260,7 +292,9 @@ fn main() {
   println!("y is {}", y); // y is 4
 }
 ```
+
 - Functions with Return Values
+
 ```rust
 fn five() -> i32 {
   5 // end of expression without return
@@ -286,6 +320,7 @@ fn return_x(x: i32) -> i32 {
 ## Control Flow
 
 - if expression
+
 ```rust
 let number = 3;
 if number < 5 {
@@ -321,6 +356,7 @@ let number = if confition {
 ```
 
 - Repeatition with Loops
+
 ```rust
 fn main() {
   let mut counter = 0;
@@ -337,6 +373,7 @@ fn main() {
 ```
 
 - Contitional Loops with while
+
 ```rust
 fn main() {
   let mut number = 3;
@@ -348,6 +385,7 @@ fn main() {
 ```
 
 - Looping Through a Collection with for
+
 ```rust
 fn main() {
   let a = [10, 20, 30, 40, 50];
@@ -363,7 +401,7 @@ fn main() {
 
 # Understanding Ownership
 
-- To enables Rust to make memory safety guarantees without needing a garbage collector. 
+- To enables Rust to make memory safety guarantees without needing a garbage collector.
 - In Ruet, memory is managed through a system of ownership with a set of rules that compiler checks at compile time
 
 ## What is Ownership?
@@ -554,7 +592,6 @@ fn change(some_string: &mut String) {
 
 - But mutable refernces have one big restriction: you can only have one mutable reference to a particular piece of data in particular scope. The benefit of having this restriction is that Rust can prevent data races at compile time. This code will fail:
 
-
 ```rust
 let mut s = String:from("hello");
 
@@ -701,6 +738,7 @@ let s = "Hello, world!"; // s is &str, slice pointing, immutable reference
 ```
 
 - String Slices as Paramters
+
 ```rust
 // We can pass string slice directly or
 // slice of the entire String
@@ -730,7 +768,7 @@ let slice = &a[1..3];
 
 ## Defining and Instantiation Structs
 
-- the pieces of a struct can be different type, can be named
+- The pieces of a struct can be different type, can be named
 
 ```rust
 struct User {
@@ -740,7 +778,8 @@ struct User {
   active: bool
 }
 ```
-- create an instance by specifying concreat values
+
+- Create an instance by specifying concreat values
 
 ```rust
 let user1 = User {
@@ -751,8 +790,8 @@ let user1 = User {
 }
 ```
 
-- get value with dot notation. it the instance is mutable, we can change a value by using the dot notation
-- certain field as mutable is not allowed
+- Get value with dot notation. it the instance is mutable, we can change a value by using the dot notation
+- Certain field as mutable is not allowed
 
 ```rust
 let mut user1 = User {
@@ -765,7 +804,7 @@ let mut user1 = User {
 user1.email = String::from("someone@example.com");
 ```
 
-- builder function
+- Builder function
 
 ```rust
 // implicity return that new instance
@@ -788,7 +827,7 @@ fn build_user(email: String, username: String) -> User {
 }
 ```
 
-- creating instances from other instnace with update value, or struct update syntax
+- Creating instances from other instnace with update value, or struct update syntax
 
 ```rust
 let user2 = User {
@@ -806,7 +845,7 @@ let user2 = User {
 }
 ```
 
-- tuple structs, can add meaning the struct name but not names associated with their field
+- Tuple structs, can add meaning the struct name but not names associated with their field
 
 ```rust
 struct Color(i32, i32, i32);
@@ -816,4 +855,4 @@ let black = Color(0, 0, 0);
 let origin = Point(0, 0, 0);
 ```
 
-- unit-like structs, don't have any fileds, behave simliarly to `()`
+- Unit-like structs, don't have any fileds, behave simliarly to `()`
