@@ -856,3 +856,141 @@ let origin = Point(0, 0, 0);
 ```
 
 - Unit-like structs, don't have any fileds, behave simliarly to `()`
+
+## An Example Program Using Struct
+
+- More meaning
+
+```rust
+// with parameters
+fn area(width: u32, height: u32) -> u32 {
+  width * height
+}
+
+area(width, height);
+
+// with tuple
+fn area(dimensions: (u32, u32)) -> u32 {
+  return dimensions.0 * dimensions.1
+}
+
+area((30, 50));
+
+// with struct
+struct Rectangle {
+  width: u32,
+  height: u32
+}
+
+fn area(rectangle: &Rectangle) -> u32 {
+  rectangle.width * rectangle.height
+}
+
+let rect = Rectangle { width: 30, height: 50 };
+
+area(&rect);
+
+```
+
+- Adding useful functionality with derived traits
+
+```rust
+[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let rect1 = Rectangle { width: 30, height: 50 };
+
+    // rect1 is Rectangle { width: 30, height: 50 }
+    println!("rect 1 is {:?}", rect1);
+
+    // rect1 is Rectangle {
+    //     width: 30,
+    //     height: 50
+    // }
+    println!("rect 1 is {:#?}", rect1);
+}
+```
+
+## Method Syntax
+
+- Methods are similar to functions, methods are different from functions in that they're defined within the context of a struct
+
+### Defining Methods
+
+- &self instead of rectangle: &Rectangle
+- `&mut self`, to take an ownership
+
+```rust
+#[derive(Debug)]
+struct Rectangle {
+  width: u32,
+  height: u32,
+}
+
+impl Rectangle {
+  fn area(&self) -> u32 {
+    self.width * self.height
+  }
+}
+
+fn main() {
+  let rect1 = Rectangle { width: 30, height: 50 };
+  println!(
+    "The area of the rectangle is {} square pixels.",
+    rect1.area()
+  )
+}
+```
+
+- `Automatic Referencing and Derefencing`, rust automatically adds in `&, &mut or *`
+
+```rust
+p1.distance(&p2);
+(&p1).distance(&p2);
+```
+
+### Methods with More Parameters
+
+```rust
+impl Rectangle {
+  fn area(&self) -> u32 {...}
+  fn can_hold(&self, other: &Rectangle) -> bool {
+    self.width > other.width && self.height > other.height
+  }
+}
+```
+
+### Associated Functions
+
+- Assoociated functions, without `self` parameter, still functions, not methods
+- Often used for constructor that will return a new instance of the struct
+
+```rust
+impl Rectangle {
+  fn square(size: u32) -> Rectangle {
+    Rectangle { width: size, height: size }
+  }
+}
+
+let sq = Rectangle::square(3);
+```
+
+### Multiple impl Blocks
+
+```rust
+impl Rectangle {
+  fn area(&self) -> u32 {
+    self.width * self.height
+  }
+}
+
+impl Rectangle {
+  fn can_hold(&self, other: &Rectangle) -> bool {
+    self.width > other.width && self.height > other.height
+  }
+}
+```
