@@ -994,3 +994,159 @@ impl Rectangle {
   }
 }
 ```
+
+# Enums and Pattern Matching
+
+## Defining an Enum
+
+````rust
+enum IpAddrKind {
+  V4,
+  V6,
+}
+
+```rust
+// assign
+let four = IpAddrKind::V4;
+let six = IpAddrKind::V6;
+
+// define a function
+fn route(ip_type: IpAddrKind) {...}
+
+struct IpAddr {
+  kind: IpADdrKind,
+  address: String,
+}
+
+let home = IpAddr {
+  kind: IpAddrKind::V4,
+  address: String::from("127.0.0.1"),
+}
+
+let loopback = IpAddr {
+  kind: IpAddrKind::V6,
+  address: String::from("::1"),
+}
+
+// associated String
+enum IpAddr {
+  V4(String),
+  V6(String),
+}
+
+let home = IpAddr::V4(String::From("127.0.0.1"));
+let loopback = IpAddr::V6(String::From("::1"));
+
+// different types and amounts of associated data
+enum IpAddr {
+  V4(u8, u8, u8, u8),
+  V6(String),
+}
+
+let home = IpAddr::V4(String::From(127, 0, 0, 1));
+let loopback = IpAddr::V6(String::From("::1"));
+
+// embedded struct
+struct Ipv4Addr {
+  ...
+}
+
+struct Ipv6Addr {
+  ...
+}
+
+enum IpAddr {
+  V4(Ipv4Addr),
+  V6(Ipv6Addr)
+}
+
+// wide variety of type embedded
+enum Message {
+  Quit,
+  Move { x:i32, y: i32 },
+  Write(String),
+  ChangeColor(i32, i32, i32)
+}
+
+impl Message {
+  fn call(&self) {
+    ...
+  }
+}
+
+let m = Message.Write(String::from("hello"));
+m.call();
+````
+
+## The `Option` Enum and Its Advantages Over Null Values
+
+- Another enum, compiler can check whether you've handled all the cases
+- Option<T> is defined by the standard library
+- Option value, `Some`, contains a value, or `None`, does not
+
+```rust
+enum Option<T> {
+  Some(T),
+  None,
+}
+
+// hold number type
+let some_number = Some(5);
+
+// hold string type
+let some_string = Some("a string")
+
+// hold none value
+let absent_number: Option<i32> = None;
+
+let x: i8 = 5;
+let y: Options<i8> = Some(5);
+
+let sum = x + y; // error, i8 + std::option:Option<i8>
+
+// uee the value with various method, https://doc.rust-lang.org/std/option/enum.Option.html
+let mut x = Some(2);
+match x.as_mut() {
+    Some(v) => *v = 42,
+    None => {},
+}
+assert_eq!(x, Some(42));
+
+let x = Some("value");
+assert_eq!(x.expect("the world is ending"), "value");
+
+let x: Option<u32> = Some(2);
+assert_eq!(x.is_some(), true);
+
+let x: Option<u32> = None;
+assert_eq!(x.is_some(), false);
+
+let x: Option<u32> = Some(2);
+assert_eq!(x.is_none(), false);
+
+let x: Option<u32> = None;
+assert_eq!(x.is_none(), true);
+```
+
+- Sample uses
+
+```rust
+fn divide(numerator: f64, denominator: f64) -> Option<f64> {
+    if denominator == 0.0 {
+        None
+    } else {
+        Some(numerator / denominator)
+    }
+}
+
+// The return value of the function is an option
+let result = divide(2.0, 3.0);
+
+// Pattern match to retrieve the value
+match result {
+    // The division was valid
+    Some(x) => println!("Result: {}", x),
+    // The division was invalid
+    None    => println!("Cannot divide by 0"),
+}
+```
