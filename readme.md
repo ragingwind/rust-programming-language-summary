@@ -1150,3 +1150,79 @@ match result {
     None    => println!("Cannot divide by 0"),
 }
 ```
+
+## The `match` Control Flow Operator
+
+### Match with enum, returning function, bind to value
+
+```rust
+enum UsState {
+  Alabama,
+  Alaska,
+  // --snip--
+}
+enum Coin {
+  Penny,
+  Nickel,
+  Dime,
+  Quarter(UsState),
+}
+
+fn value_in_cents(coin: Coin) -> u32 {
+  match coin {
+    // match enum and return function
+    Coin::Peny => {
+      println!("Lucky penny!");
+      1
+    }
+    // match enum and return value
+    Coin::Nickel => 5,
+    Coin::Dime => 10,
+    // patterns that bind to values, value_in_cents(Coin::Quarter(UsState::Alaska))
+    Coin::Quater(state) => {
+      println("State quater from{:?}!", state);
+      25
+    },
+  }
+}
+```
+
+# Matching with `Option<T>`
+
+```rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+  match x {
+    None => None,
+    Some(i) => Some(i + 1),
+  }
+}
+
+let five = Some(5);
+let six = plus_one(five); // returns 6
+let none = plus_one(None); // No value to add to, stops and return `None`
+```
+
+### Matches are exhaustive
+
+```rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+  match x {
+    Some(i) => Some(i + 1), // Error, didn't cover every possible case, `Pattern 'None` not covered
+  }
+}
+```
+
+### The `_` Placeholder
+
+Use this when we don't want to list all possible values. `_` pattern will match any value.
+
+```rust
+let some_u8_value = 0u8;
+match some_u8_value {
+  1 => println!("one"),
+  3 => println!("three"),
+  5 => println!("five"),
+  7 => println!("seven"),
+  _ => (), // By putting it after other arms, the `_` will match all the possible cases
+}
+```
