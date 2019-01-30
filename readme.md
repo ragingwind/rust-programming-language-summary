@@ -1226,3 +1226,38 @@ match some_u8_value {
   _ => (), // By putting it after other arms, the `_` will match all the possible cases
 }
 ```
+
+## Concise Control FLow with `if let`
+
+- `if let` syntax lets you combine `if` and `let` into a less verbos way to handle value that match one pattern while ignoring the rest
+
+### Match one pattern
+
+`if let`: syntax sugar for a match that runs code when the value matches one pattern
+
+```rust
+let some_u8_value = Some(0u8);
+match some_u8_value {
+  Some(3) => println!("three"),
+  _ => (),
+}
+
+// only work woth Some(3), using if let instead of
+
+if let Some(3) = some_u8_value {
+  println!("three");
+}
+```
+
+### With else
+
+```rust
+fn main() {
+  let mut count = 0;
+  if let Coin::Quater(state) = coin {
+    println!("State quater from {:?}!", state);
+  } else {
+    count + 1;
+  }
+}
+```
