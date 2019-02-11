@@ -1261,3 +1261,345 @@ fn main() {
   }
 }
 ```
+
+# Packages, Crates, and Modules
+
+- Packages are a Cargo feature that let you build, test, and share crates
+- Crates are tree of modules that produce a library or executable
+- Modules and the use keyword let you control the scope and privacy of paths
+- A path is a way of naming an item such as a struct function, or module
+
+## Packages and Crates for Making Libraries and Executables
+
+- crate,
+  - is a binary or library
+  - crate root is a source file
+  - know how to build a crate
+- package,
+  - has a Cargo.toml
+  - describe how to build one or more crates
+
+```rust
+// package
+.
+├── Cargo.toml
+├── bin // package can have multiple binary crates
+└── src
+    ├── lib.rs // crate root, it can be library or binary
+    └── main.rs // crate root, it can be binary
+
+```
+
+## The Module System to Control Scope and Privacy
+
+### Module
+
+```rust
+mod sound {
+  mod instrument {
+    fn guitar() {
+    }
+  }
+
+  mod voice {}
+}
+
+fn main() {
+
+}
+```
+
+### Path
+
+```rust
+// absolute path
+crate::sound::instrument::guitar();
+
+// relative path
+::sound::instrument::guitar();
+```
+
+### Module as the Privacy Boundary
+
+- Module are the privacy boundary in Rust
+- All items (functions, methods, structs, enums, modules and constants) are private by default
+- You can use `pub` keyword to make an item public
+- You aren't allowed to use private code defined in modules in children of the current module
+- You are allowed to use any code defined in ancestor modules, or the current module
+
+### Using the `pub` Keyword to Make Items Publicet
+
+- using in error
+
+```rust
+mod sound { // sound is allowed to use because it placed in front of instrument
+  pub mod instrument {
+    fn guitar() {}
+  }
+}
+
+// absolute path. error, guitar is not allowed to use by pub
+crate::sound::instrument::guitar();
+```
+
+- using in pub
+```rust
+mod sound {
+  pub mod instrument {
+    pub fn guitar() {}
+  }
+}
+
+crate::sound::instrument::guitar();
+```
+
+### Starting Relative Paths with `super`
+
+- the path starts from the parent module
+- super is doing, is like starting a file system path with `...`
+- in case of super is root
+
+```rust
+mod instrument {
+  fn guitar() {
+    // go to the parent module of instrument, the root
+    super::breathe_in();
+  }
+}
+
+fn breath_in() {}
+```
+
+- in case of super is mod
+
+```rust
+mod sound {
+  mod instrument {
+    fn guitar() {
+      // go to the parent module of instrument, the root
+      super::breathe_in();
+    }
+  }
+  fn breath_in() {}
+}
+```
+
+### Using `pub` with Structs and Enums
+
+- struct
+
+```rust
+mod plant {
+  pub struct Vegetable {
+    pub name: String,
+    id: i32
+  }
+
+  impl Vegetable {
+    pub fn new(name: &str) -> Vegetable {
+      Vegetable {
+        name: String::from(name),
+        id: 1,
+      }
+    }
+  }
+}
+
+fn main() {
+  let mut v = plant::Vegetable::new("squash");
+  
+  v.name = String::from("butternut squash");
+  println!("{} are delicious", v.name);
+
+  // error, id is private
+  println!("The ID is {}", v.id);
+}
+```
+
+- enum, all of its variants are public
+
+```rust
+mod menu {
+  pub enum Appetizer {
+    Soup,
+    Salad,
+  }
+}
+
+fn main() {
+  let order1 = menu::Appetizer::Soup;
+  let order2 = menu::Appetizer::Salad;
+}
+```
+
+### The `use` Keyword to Bring Paths into a Scope
+
+```rust
+mod sound {
+  pub mod instrucment {
+    pub fn guitar() {}
+  }
+}
+
+use crate::sound::instrument;
+
+mod performance_group {
+  use crate::sound::instrument;
+
+  pub fn guitar_trio() {
+    instrument::guitar();
+    instrument::guitar();
+    instrument::guitar();
+  }
+}
+
+fn main() {
+  instrument::guitar();
+  instrument::guitar();
+  instrument::guitar();
+
+  performance_group::guitar_trio();
+}
+```
+
+### Idiomatic `use` Paths for Functions vs. Other Items
+
+```rust
+mod sound {
+  pub mod instrument {
+    pub fn guitar() {}
+  }
+}
+
+// specific the function's parent module with `use` not function name directly
+use crate::sound::instrument::guitar;
+// specific path item for structs, enums, and other items
+use std::collections::HashMap;
+
+fn main() {
+  
+  guitar();
+
+  
+  let mut map = HashMap::new();
+  map.insert(1, 2);
+}
+```
+
+### Renaming Types Brought Into Scope with the `as` Keyword
+
+- Two types the sanme name into the same scope
+
+```rust
+use std::fmt;
+use std::io;
+
+fn function1() => fmt::Result {}
+fn function2() => io::Result<()> {}
+```
+
+- renaming
+
+```rust
+use std::fmt::Result;
+use std::io::Result as IoResult;
+
+fn function1() => Result {}
+fn function2() => IoResult<()> {}
+```
+
+### Re-exporting Names with `pub use`
+
+```rust
+mod sound {
+  pub mod instrument {
+    pub fn guitar() {}
+  }
+}
+
+mod performance_group {
+  pub use create::sound::instrument;
+}
+
+fn main() {
+  performance::group::instrument::guitar();
+}
+```
+
+### Using External Packages
+
+- Add `dependencies` with name and version of the package to `Cargo.toml`
+
+```toml
+[dependencies]
+rand = "0.5.5"
+```
+
+- use
+
+```rust
+use rand::Rng;
+
+fn main( ){
+  let secret_number = rand::thread_rng().gen_range(1, 101);
+}
+```
+
+- for std, we don't need to add `dependencies` to `Cargo.toml`
+
+```rust
+use std::Hashmap
+```
+
+### Nested Paths for Cleaning Up large `use` Lists
+
+```rust
+use std::cmp::Ordering;
+use std::io;
+
+// using this instead of above
+
+use std::{cmp::Ordering, io};
+```
+
+- Duplicate path by `self`
+
+```rust
+use std::io;
+use std::io::Write;
+
+// using this instead of above
+
+use std::{self, Write}
+```
+
+### Bring All Public Definitions into Scope with the Glob Operator
+
+```rust
+use std::collections::*;
+```
+
+### Separating Modules into Different Files
+
+- src/main.rs
+
+```rust
+mod sound;
+
+fn main() {
+  crate::sound::instrument::guitar()
+  sound::instrument::guitar()
+}
+```
+
+- src/sound.rs. `mod sound` load the content in `src/sound.rs`
+
+```rust
+pub mod instrument
+```
+
+- src/sound/instrument.rs
+
+```rust
+pub fn guitar() {}
+```
