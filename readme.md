@@ -1765,7 +1765,6 @@ let score = scores.get(&team_name); // result Some(&10),result wrappper Some, ge
 // Iterating
 for (key, value) in &scoress {
   println!("{}: {}", key, valye);
-}
 
 // Update a Hashmap
 
@@ -1780,6 +1779,202 @@ let mut map = HashMap::new();
 for word in text.split_whitespace() {
   let count = map.entry(word).or_insert(0);
   *count += 1; // mutable reference
+}
+```
+
+# Errror Handling
+
+- Two types of categories:
+  - recoverable: file not found, Result<T, E>
+  - unrecoverable: symptoms of bugs, accessing end of an array, panic!
+
+## Unrecoverable Erros With panic!
+
+- call panic! when you stop the program, unwind and clean stack, and quit
+- using 'abort' stop immediately
+
+```
+[profile.release]
+panic = 'abort'
+```
+
+- using a panic! Backtrace `RUST_BACKTRACE=1 cargo run`
+- cargo symbol are enabled by default `cargo build, cargo run` without `--release`
+
+## Recoverable Error with Result
+
+```rust
+enum Result<T, E> {
+  Ok(T),
+  Err(E),
+}
+```
+
+- when ssucceeds return Ok(T), failed, return Err(E)
+
+```rust
+use std:fs::File;
+
+fn main() {
+  let f = File::open("hello.txt");
+
+  let f = match f {
+    Ok(file) => file,
+    Err(error) => {
+      panic!("There was a problem opening file: {:?}", error)
+    },
+  };
+}
+```
+
+### Matching on Different Errors
+
+- basics
+
+```rust
+use std:fs::File;
+
+fn main() {
+  let f = File::open("hello.txt");
+
+  let f = match f {
+    Ok(file) => file,
+    Err(error) => match error.kind() {
+      ErrorKind::NotFound => match File::create("hello.txt") {
+        Ok(fc) = fc,
+        Err(e) = panic!("Tried to create file but there was a problem {:?}", e),
+      },
+      other_error => panic!("There was a problem opening file: {:?}", error)
+    },
+  };
+}
+```
+
+- closures
+
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+  let f = File.open("hello.txt").map_err(|error| {
+    if (error.kind()) == ErrorKind.NotFound {
+      File::create("hello.txt").unwrap_or_else(|error| {
+        panic!("Tried to create file but there was a problem {:?}", e)
+      })
+    } else {
+      panic!("There was a problem opening file: {:?}", error)
+    }
+  })
+}
+```
+
+### Shortcuts for Panic on Error: unwrap and expect
+
+```rust
+use std:fs:File;
+
+fn main() {
+  // unwarp, shortcut method of match, return Ok or Err
+  let f = File::open("hello.txt").unwrap()
+
+  // expect, let us choos the panic, return the fild handle or call panic! macro
+  let f = File::open("hello.txt").expect("Failed to open hello.txt)
+}
+```
+
+### Propagating Errors
+
+```rust
+fn read_username_from_file() -> Rsult<String, io::Error> {
+  let f = File::open("hello.txt");
+
+  let mut f = match f {
+    Ok(file) => file,
+    Err(e) => return Err(e),
+  }
+
+  let mut s = String::new();
+
+  match f.read_to_string(&mut s) {
+    Ok(_) => Ok(s),
+    Errr(e) =>> Err(e),
+  }
+}
+
+// shrotcut for propagating?
+fn read_username_from_file() -> Result<String, io::Error> {
+  let mut f = File::open("hello.txt")?; // ? placed after a Result, work in same way as match, as getting error, will be return
+  let mut s = String::new();
+  f.read_to_string(&mut s)?;
+  Ok(s)
+}
+
+
+fn read_username_from_file() -> Result<String, io::Error> {
+  let mut s = String::new();
+  File::open("hello.txt")?.read_to_string(&mut s)?;
+  Ok(s)
+}
+
+fn read_username_from_file() -> Result<String, io::Error> {
+  fs::read_to_string("hello.txt")
+}
+
+// ? operator can only be used in functions that return Result
+fn main() {
+  let f = File::open("hello.txt"); // error
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+  let f = File::open("hello.txt"); // error
+
+  Ok(())
+}
+```
+
+## To panic! or Not ro panic!
+
+default is Result but below cases are need to use panic!
+
+```rust
+loop {
+    // --snip--
+
+    let guess: i32 = match guess.trim().parse() {
+        Ok(num) => num,
+        Err(_) => continue,
+    };
+
+    if guess < 1 || guess > 100 {
+        println!("The secret number will be between 1 and 100.");
+        continue;
+    }
+
+    match guess.cmp(&secret_number) {
+    // --snip--
+}
+
+// panic! better, use invalid variable from out of context
+
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {}.", value);
+        }
+
+        Guess {
+            value
+        }
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
+    }
 }
 ```
 
