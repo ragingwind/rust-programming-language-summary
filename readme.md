@@ -1603,3 +1603,183 @@ pub mod instrument
 ```rust
 pub fn guitar() {}
 ```
+
+# Common Collections
+
+- vector: allows you to store a variable number of values next to each other
+- string: collection of characters
+- hash map: allows you to associate a value with a particular key
+
+## Storing Lists of Values with Vectors
+
+[samples]()
+
+### Reading Elements of Vectors
+
+- out of index: [] will cause the panic, `get` method returns `None` without panicking
+
+- can' have mutable and immutable references in the same scope
+
+```rust
+let mut v = vec![1, 2, 3, 4];
+let first = &v[0]; // immutable borrow
+v.push(6); // mutable borrow, vector might require allocating new memory and copy the old elms
+println!("fist is {}", first) // immutable borrow used here
+```
+
+### Iterating over the values in a Vector
+
+[samples]()
+
+## Using an enum to store multiple types
+
+- vector can only store values that are the sample type
+- store different type with enum
+
+```rust
+enum SpreadsheetCell {
+  Int(32),
+  Float(f64),
+  Text(String)
+}
+
+let row = vec![
+  SpreadsheetCell::Int(3),
+  SpreadsheetCell::Text(String::from("blue"))
+  SpreadsheetCell::Float(10.12)
+]
+```
+
+## Storing UTF-8 Encoded Text With Strings
+
+- String are implemented as a collection of bytes
+- String, gowable, mutable, owned, UTF-8 encoded type
+- string slice &str, borrowed
+- OsString, OsStr, CString, Cstr
+
+### Creating a New String
+
+```rust
+let mut s = String::new();
+let data = "initial contents"
+let s = data.to_string();
+let s = "initial contents".to_string();
+let s = String::from("initial content");
+```
+
+### Updading a String
+
+```
+let mut s = String::from("foo");
+s.push_str("bar");
+
+let mut s1 = String::from("foo");
+let s2 = "bar";
+s1.pus_str(s2); // string slice, no ownership about s1, foobar
+
+//single character
+s.push('l'); 
+
+// ownership
+let s1 = String::from("Hello, ");
+let s2 = String::from("world!");
+// note s1 has been moved here and can no longer be used
+// s1 called add(self, s:&str), add takes onwnership from self
+// &s2 use deref coercion, doesn't takes ownership
+let s3 = s1 + &s2; 
+
+// format!
+let s1 = String::from("tic");
+let s2 = String::from("tac");
+let s3 = String::from("toe");
+
+let s = format!("{}-{}-{}", s1, s2, s3);
+
+// indexing
+// Rust doesn’t allow us to index into a String to get a character is that indexing operations are expected to always take constant time (O(1)).
+let s1 = String::from
+let h = s1[0]; // error cannot be indexed by integer
+
+// len, String is a warpper over a `Vec<u8>
+let let = String::From("hola").len(); // byte length, 4
+let len = String::from("Здравствуйте").len(); // bytes length, 24
+let hello = "Здравствуйте"; 
+let answer = &hello[0]; // return not 3, 208, which first byte
+
+// “नमस्ते” written in the Devanagari script is stored as a vector
+// [224, 164, 168, 224, 164, 174, 224, 164, 184, 224, 165, 141, 224, 164, 164,
+224, 165, 135]
+
+// Slicing strings
+let hello = "Здравствуйте";
+let s = &hello[0..4]; // Зд
+let s = &hello[0..1]; // panic, index is not a char boundary
+
+// Iterating
+for c in "नमस्ते".chars() {
+  println!("{}", c); // न म स ् त े 
+}
+
+for c in "नमस्ते".bytes() {
+  println!("{}", c); // 224 164 // --snip-- 165 135
+}
+
+```
+
+## Storing Keys with Assoicated Values in Hash Maps
+
+- type `HashMap<K, V> stores a mapping of keys of type K to values of types V
+- store data on the heap
+
+```rust
+// creating
+use std::collection::Hashmap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+// zip
+let teams = vec![String::from("Blue"), String::from("Yellow")];
+let initial_scores = vec![10, 50];
+
+// HashMap<_, _>, rust infer the type
+let scores: HashMap<_, _> = teams.iter().zip(initial_scores.iter()).collect();
+
+// Ownership
+let field_name = String::from("Favorite color");
+let field_value = String::from("Blue":);
+
+let mut map = HashMap::new();
+map.insert(field_name, filed_value); // Type that copy trait, value are copied into the hash, no longer valid, fileds
+
+// Accesing
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 20);
+
+let team_name= String::from("Blue");
+let score = scores.get(&team_name); // result Some(&10),result wrappper Some, get returns Option(&v), if there's no value will return None
+
+// Iterating
+for (key, value) in &scoress {
+  println!("{}: {}", key, valye);
+}
+
+// Update a Hashmap
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25); // overwrite
+scores.entry(String::from("Blue")).or_insert(50); // insert if the key has no value
+
+// Update a value
+let text = "hello world wonderful world";
+let mut map = HashMap::new();
+
+for word in text.split_whitespace() {
+  let count = map.entry(word).or_insert(0);
+  *count += 1; // mutable reference
+}
+```
+
