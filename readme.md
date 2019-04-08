@@ -1978,3 +1978,333 @@ impl Guess {
 }
 ```
 
+# Generic Types, Traits, and Lifetimes
+
+- Remove duplication in Rust
+
+## Generic Data Types
+
+- In Struct Definition
+
+```rust
+struct Point<T> {
+  x: T,
+  y: T,
+}
+
+let work = Point { x: 5, y: 6 }
+let wont_work = Point { x: 5, y: 6.0 }
+
+struct Point<T. U> {
+  x: T,
+  y: U
+}
+
+let both_integer = Point { x: 5, y: 20 }
+let both_float = Point { x: 5.0, y: 20.0 }
+let integer_and_float = Point { x: 5, y: 20.0 }
+```
+
+- In Enum Definition
+
+```rust
+enum Option<T> {
+  Some(T),
+  None,
+}
+
+enum Result<T, E> {
+  Ok(T),
+  Err(E),
+}
+```
+
+- In Method Definition
+
+```rust
+struct Point<T> {
+  x: T,
+  y: T,
+}
+
+impl<T> Point<T> {
+  fn x(&self) -> &T {
+    &self.x
+  }
+}
+
+//. implemention with f32
+impl Point<f32> {
+  fn distance_from_origin(&self) -> f32 {
+    (self.x.powi(2) + self.y.powi(2)).sqrt()
+  }
+}
+
+let p = Point{ x: 5, y: 10 };
+println("p.x = {}", p.x())
+
+// with another signatures
+struct Point<T, U> {
+  x: T,
+  y: U,
+}
+
+impl<T, U> Point<T, U> {
+  fn mixup<V, W>(self, other: Point<V, W>) -> Point<T, W> {
+    Point {
+      x: self.x,
+      y: other.y,
+    }
+  }
+}
+
+let p1 = Point { x: 5, y: 10.4 };
+let p2 = Point { x: "Hello", y: 'c' };
+let p3 = p1.mixup(p2);
+
+printnl!("p3.x = {}, p3.y: {}", p3.x, p3.y)
+```
+
+### Performance of Code Using Generics
+
+- Monomorphization is the process of turning generic ode into specific code by filling the concrete types that are used when compiled
+
+## Trais: Defining Shared Behavior
+
+- shared behavior in an abstract way
+- interface, often called
+- can't implement external traits on external type
+
+```rust
+// define
+pub trait Summary {
+  fn summerize(&self) -> String;
+}
+
+pub struct NewsArticle {
+  pub headline: String,
+  pub location: String,
+  pub author: String,
+  pub content: String,
+}
+
+impl Summary for NewsArticle {
+  fn summerize(&self) -> String {
+    format!("{}, by {} ({})", self.haedline, self.author, self.location)
+  }
+}
+
+let news  = NewsArticle {
+  username: String::from("username"),
+  location: String::from("location"),
+  author: String::from("author"),
+  content: String::from("of course"),
+}
+
+println!("{}", news.summerize());
+
+// default implementation, src/lib.rs
+pub trait Summary {
+  fn summerize_author(&self) -> String;
+  fn summarize(&self) -> String {
+    String::from("(Read more... form {})", self.summerize_author())
+  }
+}
+
+impl Summary for Tweet {
+  fn summerize_author(&self) -> String {
+    format!("@{}", self.username)
+  }
+}
+
+// traits as argumants, `impl Traits`
+pub fn notify(item: impl Summary) {
+  ...
+}
+
+// trait bound for more comples one, item, item2 must be same type
+pub fn notify<T: Summary>(item: T, item2: T) {
+  ...
+}
+
+// specify multiple traits with +
+pub fn notify(item: impl Summary + Display) {
+  ...
+}
+
+pub fn notify<T: impl Summary + Display>(item: T) {
+  ...
+}
+
+// where clauses for clearer code
+fn some_function<T: Display + Clone, U: Clone + Debug>(t: T, u: T) -> i32 {
+  ...
+}
+
+// ->
+
+fn some_function<T, U>(t:T, t:U) -> i32
+    where T: Display + Clone,
+          U: Clone + Debug {
+  ...
+}
+
+// returning
+fn returns_summarizable() -> impl Summary {
+  ...
+}
+
+// compare stack-only data with copy
+fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {}
+
+// conditionally implement methods, Pair<T> only implement cmd_display
+// method if its inner type T implements the `PartialOrd`
+impl<T: Display + PartialOrd> Pair<T> {
+  ...
+}
+```
+
+## Validating References with Lifetimes
+
+- every reference in Rust has a lifetime
+
+```rust
+// preventing dangling references with lifetime
+{
+  let r // null
+  {
+    let x = 5;
+    r = &x; // borrow
+  } // x dropped
+  println!("{}", r);
+}
+
+// borrow checker
+{
+    let r;                // ---------+-- 'a
+                          //          |
+    {                     //          |
+        let x = 5;        // -+-- 'b  |
+        r = &x;           //  |       |
+    }                     // -+       |
+                          //          |
+    println!("r: {}", r); //          |
+}                         // ---------+
+
+// fixed
+{
+    let x = 5;            // ----------+-- 'b
+                          //           |
+    let r = &x;           // --+-- 'a  |
+                          //   |       |
+    println!("r: {}", r); //   |       |
+                          // --+       |
+}
+
+// generic lifetimes in function
+fn longest(x: &str, y: &str) -> &str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+let string1 = String::from("abcd");
+let string2 = "xyz";
+
+let result = longest(string1.as_str(), string2); // longest take a ownership
+println!("The longest string is {}", result);
+
+// life time annotation
+// &i32, a refernce
+// &'a i32, a refernce with an explicit lifetime
+// &'a mut i32, a mutable reference with an explicit lifetime
+// longest doens'nt need to know exacly how long args wiil live
+// borrow checker shoud reject any values that adhere to these constraints
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+  ...
+}
+
+let string1 = String::from("long string is long");
+let result;
+{
+    let string2 = String::from("xyz");
+    result = longest(string1.as_str(), string2.as_str()); // borrow occurs
+} // string2 dropped here
+println!("The longest string is {}", result);
+
+// lifetime annotations in struct definitions
+struct ImportantExcerpt<'a> {
+  part: &'a str,
+}
+
+let novel = String::from("call me Ishmael. Some years ago...");
+let first_sentence = novel.split('.')
+  .next()
+  .expect("Cound not find a '.'")
+let i = ImportantExcerpt { part: first_sentence }; // can’t outlive the reference it holds in its part field.
+```
+
+# Testing
+## Writings tests
+## Running tests
+## Test Organinzation
+
+# An I/O Project: Building a Command Line Program
+## Accepting Command Line Arguments
+## Reading a File
+## Refactoring to Improve Modularity and Error Handling
+## Developing the Library’s Functionality with Test Driven Development
+## Working with Environment Variables
+## Writing Error Messages to Standard Error Instead of Standard Output
+
+# Functional Language Features: Iterators and Closures
+## Closures: Anonymous Functions that Can Capture Their Environment
+## Processing a Series of Items with Iterators
+## Improving Our I/O Project
+## Comparing Performance: Loops vs. Iterators
+
+# More about Cargo and Crates.io
+## Customizing Builds with Release Profiles
+## Publishing a Crate to Crates.io
+## Cargo Workspaces
+## Installing Binaries from Crates.io with cargo install
+## Extending Cargo with Custom Commands
+
+# Smart Pointers
+## Box Points to Data on the Heap and Has a Known Size
+## The Deref Trait Allows Access to the Data Through a Reference
+## The Drop Trait Runs Code on Cleanup
+## Rc, the Reference Counted Smart Pointer
+## RefCell and the Interior Mutability Pattern
+## Creating Reference Cycles and Leaking Memory is Safe
+
+# Fearless Concurrency
+## Threads
+## Message Passing
+## Shared State
+## Extensible Concurrency: Sync and Send
+
+# Object Oriented Programming Features of Rust
+## Characteristics of Object-Oriented Languages
+## Using Trait Objects that Allow for Values of Different Types
+## Implementing an Object-Oriented Design Pattern
+
+# Patterns Match the Structure of Values
+## All the Places Patterns May be Used
+## Refutability: Whether a Pattern Might Fail to Match
+## All the Pattern Syntax
+
+# Advanced Features
+## Unsafe Rust
+## Advanced Lifetimes
+## Advanced Traits
+## Advanced Types
+## Advanced Functions & Closures
+## Macros
+
+# Final Project: Building a Multithreaded Web Server
+## A Single Threaded Web Server
+## Turning our Single Threaded Server into a Multithreaded Server
+## Graceful Shutdown and Cleanup
