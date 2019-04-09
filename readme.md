@@ -2248,8 +2248,68 @@ let i = ImportantExcerpt { part: first_sentence }; // can’t outlive the refere
 
 # Testing
 ## Writings tests
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+        assert_ne!(2 + 2, 5);
+    }
+    #[test]
+    fn exploration() {
+        assert_eq!(2 + 2, 4);
+    }
+    #[test]
+    fn another() {
+        panic!("Make this tesdt fail")
+    }
+
+    #[test]
+    fn boolean_test() {
+        assert!(true)
+    }
+
+    fn panicer() {
+        panic!("panic!")
+    }
+
+    #[test]
+    #[should_panic()]
+    fn should_panic() {
+        panicer()
+    }
+
+    #[test]
+    #[should_panic(expected ="panic!")]
+    fn should_panic_expect() {
+        panicer()
+    }
+
+    #[test]
+    fn it_works_result() -> Result<(), String> {
+        if 2 + 2 == 4 {
+            Ok(())
+        } else {
+            Err(String::from("two plus two does not equal four"))
+        }
+    }
+}
+```
+
 ## Running tests
+
+- tests in parallel or conscutively `$ cargo test -- --test-threads=1`
+- output with `println`
+- running test with the name of the test `cargo test test_name`
+- ignore test with `#[ignore]` and `cargo test -- --ingore`
+
 ## Test Organinzation
+- `#[cfg(test)]` annotation on the tests module tells Rust run test code only
+- integration test with `tests` directory, without `#[cfg(test)]`
+- using `setup` function at `tests/common.rs` to setup test
+- can't test witn src/main.rs, binary project. use lib.rs instead of
 
 # An I/O Project: Building a Command Line Program
 ## Accepting Command Line Arguments
