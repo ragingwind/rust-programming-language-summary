@@ -2220,7 +2220,7 @@ println!("The longest string is {}", result);
 // &i32, a refernce
 // &'a i32, a refernce with an explicit lifetime
 // &'a mut i32, a mutable reference with an explicit lifetime
-// longest doens'nt need to know exacly how long args wiil live
+// longest doens't need to know exacly how long args will live
 // borrow checker shoud reject any values that adhere to these constraints
 fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
   ...
@@ -2230,7 +2230,7 @@ let string1 = String::from("long string is long");
 let result;
 {
     let string2 = String::from("xyz");
-    result = longest(string1.as_str(), string2.as_str()); // borrow occurs
+    result = longest(string1.as_str(), string2.as_str()); // borrow occurs, return string
 } // string2 dropped here
 println!("The longest string is {}", result);
 
@@ -2312,12 +2312,27 @@ mod tests {
 - can't test witn src/main.rs, binary project. use lib.rs instead of
 
 # An I/O Project: Building a Command Line Program
+
 ## Accepting Command Line Arguments
-## Reading a File
-## Refactoring to Improve Modularity and Error Handling
-## Developing the Library’s Functionality with Test Driven Development
-## Working with Environment Variables
-## Writing Error Messages to Standard Error Instead of Standard Output
+
+- if any arguments contains invalid Unicode, panic will be raised
+- first vector is the name of our binary
+- `:?` debug formatter for vector
+- guildline for task
+  - Split your program into a main.rs and lib.rs, and move your program's logic to lib.rs
+  - As long as your command line parsing logic is small, it can remain in main.rs
+  - When the command line parsing logic starts getting complicated, extract it from main.rs adn move it to lib.rs
+  - for main function
+    - Calling the command line parsing logic with arguments values
+    - Setting up any other confiuration
+    - Calling a rin function in lib.rs
+    - Handling the error if run return an error
+- unwrap_or_else, defined on Result<T, E> by the standard library, allow us to define some custom non-panic! error handling
+- `Box<dyn Error> is trait object to return Error trait
+- `if let` and `unwrap_or_else` is same
+- `'a` lifetime parameters specify, lifetime is connected to the lifetime of the return value. in this cases, the return vector that reference slices of the arguments contents
+- `is_err` will return false, env variable is set to anything
+- `eprintln!` macro that prints to the standard error stream, 
 
 # Functional Language Features: Iterators and Closures
 ## Closures: Anonymous Functions that Can Capture Their Environment
