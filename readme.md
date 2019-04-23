@@ -2335,17 +2335,290 @@ mod tests {
 - `eprintln!` macro that prints to the standard error stream, 
 
 # Functional Language Features: Iterators and Closures
+
+
 ## Closures: Anonymous Functions that Can Capture Their Environment
+
+- Rust's closures are anonymouse function you can save in a variable or pass as arguments to other function
+- cakk the closures to evaluate it in a different context
+- closures can capture values from the scope in which they're defined
+
+```rust
+let expensive_closure = |num| { // closure definition comes after the `=`, start with '|', had one more parameter
+  println!("caclulating slowly...");
+  thread::sleep(Duration::from_secs(2));
+  num
+}
+```
+
+- with annoationg of the type
+
+```rust
+let expensive_closure = |num: u32| -> u32 {}
+```
+
+- more syntax
+
+```rust
+fn  add_one_v1   (x: u32) -> u32 { x + 1 }
+let add_one_v2 = |x: u32| -> u32 { x + 1 };
+let add_one_v3 = |x|             { x + 1 };
+let add_one_v4 = |x|               x + 1  ;
+```
+
+- types are locked in to the closure, getting a type error if we try to use a different type with the same closure
+
+```rust
+let example_closure = |x| x;
+
+let s = example_closure(String::from("hello")); // String locked in 
+let n = example_closure(5); // error
+```
+- captureing the environment with closures
+
+```rust
+fn main() {
+  let x = 4;
+
+  let equal_to_x = |z| z == x; // capure x
+
+  let y = 4
+
+  assert!(equal_to_x(y));
+
+  let x = 4;
+
+  // can't capture, use FnOnce, fnMut, Fn
+  // FnOnce, capture from enclosing scope, take ownership, can't take ownership more than once
+  // FnMut, can change the environment
+  // Fn, borrows values from environment immutably
+  fn euqal_to_x(z: i32) -> bool { z == x } 
+
+  // move
+  let x = vec![1, 2, 3];
+  let equal_to_x = move |z| z == x; // x moved in to closure
+
+  println!("can't use x here: {:?}", x); // panic! value used after move
+
+  let y = vec![1, 2, 3];
+
+  assert!(equal_to_x(y));
+}
+```
+
 ## Processing a Series of Items with Iterators
+
+- In Rust, iterators are lazy, have no effect until you call methods that consume the iterator to use it up
+- Iterator trait hs a number of different method with default implementation provide by the standard library
+
+```rust
+let v1 = vec![1, 2, 3];
+let v1_iter = v1.iter();
+let sum v1_iter.sum();
+```
+
+- `iterator adaptors`, allow you to change iterators into different kinds of iterator, but all iterator are lazy, you have to call one of the consuming adaptor method to get result from calls iterator adaptors.
+
+```rust
+let v1: Vec<i32> = vec![1, 2, 3];
+let v2: Vec<_> = v1.iter().map(|x| x + 1).collect();
+assert_eq!(v2, vec![2, 3, 4]);
+```
+
+- creating own iterator
+
+```rust
+struct Counter {
+  count: u32;
+}
+
+impl Counter {
+  fn new() -> Counter {
+    Counter { count: 0 }
+  }
+}
+
+impl Iterator for Counter {
+  type Item = u32;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    self.count += 1;
+
+    if (self.count < 6) {
+      Some(self.count)
+    } else {
+      None
+    }
+  }
+}
+
+let mut counter = Counter::new();
+
+assert_eq!(counter.next(), Some(1));
+
+let sum: u32 = Counter::new().zip(Counter::new().skip(1))
+                              .map(|(a, b)| a * b)
+                              .filter(|x| x % 3 == 0)
+                              .sum();
+assert_eq!(18, sum);
+```
+
 ## Improving Our I/O Project
+
+- using iterator rather than vec!
+
+```rust
+impl Config {
+  pub fn new(mut args: std::env::Args) -> Result<Config, &'static str> {
+    args.next();
+    let query = match args.next() {
+      ...
+    }
+
+    let file.name = match args.next() {
+      ...
+    }
+
+    let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
+  }
+
+  pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    contents.lines()
+        .filter(|line| line.contains(query))
+        .collect()
+  }
+}
+
+```
+
 ## Comparing Performance: Loops vs. Iterators
 
+- iterator version is slightly faster
+- Rust knows that how many iterations, so it `unrolls` the loop, compiles down to same assembly, `unrolling` is an optimization that removes the overhead of the loop controlling code and instead generates repetitive code for each iteration of the loop.
+
 # More about Cargo and Crates.io
+
 ## Customizing Builds with Release Profiles
+
+- build with profile name
+
+```
+$ cargo build
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+$ cargo build --release
+```
+
+- Cargo has default settings for each of the profiles that apply when there aren’t any [profile.*] sections in the project’s Cargo.toml file
+- By adding [profile.*] sections for any profile you want to customize, you can override any subset of the default settings.
+
+```
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+```
+
 ## Publishing a Crate to Crates.io
+
+- making useful documentation comments with `///`
+
+```rust
+/// Adds one to the number given.
+///
+/// # Examples
+///
+/// ```
+/// let arg = 5;
+/// let answer = my_crate::add_one(arg);
+///
+/// assert_eq!(6, answer);
+/// ```
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+```
+
+- `cargo doc --open` will build the HTML
+- other sections, `Panics`, `Erros`, `Safety`
+- `cargo test` will run the code example in your documentation as tests!
+- adding documentation comments with `//!`
+- re-export with `pub use` statements the items at the top level
+
+```rust
+// src/lib.rs
+pub use self::kinds::PrimaryColor;
+
+// src/main.rs
+use art::PrimaryColor;
+```
+- `cargo login` for setting up a crates.io account
+- adding metadata
+
+```
+[package]
+name = "guessing_game"
+version = "0.1.0"
+authors = ["Your Name <you@example.com>"]
+edition = "2018"
+description = "A fun game where you guess what number the computer has chosen."
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+```
+
+- `cargo publish` for publishing to crates.io
+- `cargo yank --vers 1.0.1` for removing version from crates.ios
+
 ## Cargo Workspaces
+
+- workspace, for multiple libary crates with `cargo new` and `[workspace]`
+
+```
+// Cargo.toml
+[workspace]
+
+members = [
+    "adder",
+    "add-one",
+]
+```
+
+- workspace directories
+
+```
+├── Cargo.lock
+├── Cargo.toml
+├── add-one
+│   ├── Cargo.toml
+│   └── src
+│       └── lib.rs
+├── adder
+│   ├── Cargo.toml
+│   └── src
+│       └── main.rs
+└── target
+```
+
+- dependencies to workspace
+
+```
+[dependencies]
+
+add-one = { path = "../add-one" }
+```
+
+- worksapce has only one Cargo.lock at the top level of the workspace, which ensure that all crates are using same version of all dependencies
+- `cargo test -o add-one` for testing specific test
+
 ## Installing Binaries from Crates.io with cargo install
+
+- cargo install command allows you to install and use binary crates locally
+
 ## Extending Cargo with Custom Commands
+
+- cargo is designed so you can extend it with new subcommands without having to modify Cargo. if a binary in your $PATH is named cargo-something, you can run it as if it was a cargo subcommand by running `cargo something`
+- `cargo --list` for lising
 
 # Smart Pointers
 ## Box Points to Data on the Heap and Has a Known Size
