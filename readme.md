@@ -2621,12 +2621,207 @@ add-one = { path = "../add-one" }
 - `cargo --list` for lising
 
 # Smart Pointers
-## Box Points to Data on the Heap and Has a Known Size
-## The Deref Trait Allows Access to the Data Through a Reference
-## The Drop Trait Runs Code on Cleanup
+
+- Smart pointers, on the other hand, are data structures that not only act like a pointer but also have additional metadata and capabilities
+- In Rust, which uses the concept of ownership and borrowing, an additional difference between references and smart pointers are pointers that only borrow data; in contrast, in many cases, `smart pointers own the data they point to`
+
+## Using `Box<T> to Point to Data on he Heap
+
+- Boxes allow you to store data on the heap
+- Using a Box<T>
+
+```rust
+
+let b = Box::new(5); // b points the value 5, which is allocated on the heap
+println!("{}", b);
+// box goes out of scope, it will be deallocated
+```
+
+- Indirection data storing wiht box
+
+```rust
+enum List {
+  Cons(i32, Box<List>),
+  Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+  let list = Cons(1, 
+      Box::new(Cons(2,
+        Box::new(Cons(3,
+          Box::new(Nil)))));
+}
+```
+
+## Treating Smart Pointers Like Regular References with the Deref Trait
+
+- `Deref` trait allows you to customize the behavior of derefence operator *
+
+```rust
+let x = 5;
+let y = &x;
+
+assert_eq!(5, x);
+assert_eq!(5, *y); // no implementation for `{integer} == &{integer}`
+
+let y = Box::new(x);
+assert_eq!(5, *y); // ok, Box poiting to the value x
+```
+
+- defining own smart pointer
+
+```rust
+use std::ops::Deref;
+
+struct MyBox<T>(T);
+
+impl<T> MyBox<T> {
+  fn new(x: T) -> MyBox<T> {
+    MyBox(x)
+  }
+}
+
+impl<T> Deref for MyBox<T> {
+  type Target = T;
+
+  fn deref(&self) -> &T {
+    &self.0 // returns a reference to the value we want access with *, * same as *(y.deref())
+  }
+}
+```
+
+- implic deref coercions with functions and methods
+
+```rust
+fn hello(name: &str) {
+  println!("Hello, {}!", name);
+}
+
+fn main() {
+  let m = MyBox::new(String::from("rust"));
+  hello(&m); // reference to a MyBox<String>
+
+  // if Rust didn't impkement deref coercion
+  hello(&(*m)[..]);
+}
+```
+
+- Rust does deref coercion when it finds types and trati implementations in three cases:
+  - from `&T` to `&U` when `T: Deref<Target=U>`
+  - from `&mut T` to `&mut U` when `T: DerefMut<Target=U>`
+  - from `&mut T` to `&U` when `T: Deref<Target=U>`
+
+## Running Code on Cleanup with the `Drop` Trait
+
+- drop to deallocate the space on the heap that the box points to
+
+```rust
+struct CustomSmartPointer {
+  data: String;
+}
+
+impl Drop for CustomSmartPointer {
+  fn drop(&mut self) {
+    ...
+  }
+}
+
+fn main() {
+  let c = CustomSmartPointer { data: String::from("my studff") };
+  let d = CustomSmartPointer { data: String::from("my other studff") };
+
+  // manually drop
+  drop(d)
+}
+
+
+```
+
 ## Rc, the Reference Counted Smart Pointer
+
+- to enable multiple ownership, Rust has a type called `RC<T>`
+
+```rust
+fn main() {
+  let a = Rc::new(Cons(5, Rc:new(Cons(10, Rc::new(Nil)))));
+  println!("count", Rc::strong_coint(&a)); // 1
+
+  let b = Cons(3, Rc::clone(&a))
+  println!("count", Rc::strong_coint(&a)); // 2
+
+  {
+    let c = Cons(3, Rc::clone(&a))
+    println!("count", Rc::strong_coint(&a)); // 3
+  }
+  
+  println!("count", Rc::strong_coint(&a)); // 4
+}
+```
 ## RefCell and the Interior Mutability Pattern
-## Creating Reference Cycles and Leaking Memory is Safe
+
+- RefCell<T> allows mutable borrows check at `runtime`. You can mutate the value inside the `RefCell<T>` even when the `RefCell<T>` is immutable
+
+```rust
+sent_messages: RefCell<Vec<String>> = RefCell::new(vec![]);
+send_messages.borrow_mut().push(String::from(message));
+```
+
+- Makeing two mutable refernces in same scope which isn't allowed
+
+```rust
+fn send(&self, message: &str) {
+  let mut one_borrow = self.sent_messages.borrow_mut();
+  let mut two_borrow = self.sent_messages.borrow_mut(); // already borrowed: BorrowMutError.
+
+  one_borrow.push(String::from(message));
+  two_borrow.push(String::from(message));
+}
+```
+
+## Reference Cycles Can Leak Memory
+
+- preventing memory leaks entirely is not one of Rust's guarantees in the same way that disallowing data races at compile time is, meaning memory leaks are memory safe in Rust
+- using Week<T>::upgrade to get Some or None whether Rc<T> has been dropped or not, and Rc::downgrade (to increase the weak_count), 
+
+```rust
+use std::rc::{Rc, Weak};
+use std::cell::RefCell;
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell<Weak<Node>>,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    // leaf parent = None
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+
+    let branch = Rc::new(Node {
+        value: 5,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+
+    // week node has child by downgrade
+    *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+    // leaf parent = Some(Node { value: 5, parent: RefCell { value: (Weak) },
+    // children: RefCell { value: [Node { value: 3, parent: RefCell { value: (Weak) },
+    // children: RefCell { value: [] } }] } })
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+}
+```
+
 
 # Fearless Concurrency
 ## Threads
