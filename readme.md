@@ -2824,14 +2824,266 @@ fn main() {
 
 
 # Fearless Concurrency
+
 ## Threads
-## Message Passing
-## Shared State
-## Extensible Concurrency: Sync and Send
+
+- run thread
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+  thread::spawn(|| {
+    for i in 1..10 {
+      println!("spwan thread {}", i);
+      thread::sleep(Duration::from_millis(1));
+    }
+  });
+
+  for i in 1..5 {
+    println!("main thread {}", i);
+    thread::sleep(Duration::from_millis(1));
+  }
+}
+```
+
+- join thread to guarantee to get to run
+
+```rust
+let handle = thread::spawn(|| { ... })
+handle.join().unwrap();
+```
+
+- move closure, v will be moved into the closure's env
+
+```rust
+let v = vec![1, 2, 3];
+
+let handle = thread::spawn(move || {
+  println!("v: {:?}", v);
+});
+
+handle.join().unwrap();
+```
+
+## Using Message Passing to Transfer Data Between Threads
+
+- `channel` is message-sending concurrency
+
+```rust
+use std::sync::mpsc;
+
+fn main() {
+  let (tx, rx) = mpsc::channel();
+
+  thread::spawn(move || {
+    let val = String::from("hi");
+    tx.send(val).unwrap();
+  });
+
+  let received = rx.recv().unwrap(); // or try_recv, non-block
+  println!("got: {}", received);
+}
+```
+
+- chanels and ownership trnasference
+
+```rust
+use std::thread;
+use std::sync::mpsc;
+
+fn main() {
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let val = String::from("hi");
+        tx.send(val).unwrap(); // value moved here
+        println!("val is {}", val);
+    });
+
+    let received = rx.recv().unwrap();
+    println!("Got: {}", received);
+}
+```
+
+- multiple values sending and receiving
+
+```rust
+use std::thread;
+use std::sync::mpsc;
+use std::time::Duration;
+
+fn main() {
+  let (tx, rx) = mpsc::channel();
+
+  thread.spwan(move || {
+    let vals = vec![
+      String::from("hi"),
+      String::from("from"),
+      String::from("the"),
+      String::from("thread"),
+    ];
+
+    for val in vals {
+      tx.send(val).unwrap();
+      thread::sleep(Duration::from_secs(1));
+    }
+  });
+
+  for reveived in rx {
+    println!("got: {}", received);
+  }
+}
+```
+
+- cloning the transmitter
+
+```rust
+let (tx, rx) = mpsc::channel();
+let tx1 = mpsc::Sender::clone(&tx);
+```
+
+## Shared-State Concurrency
+
+- mutex, `lock` returns a smart pointer called `MutexGuard`
+
+```rust
+use std::sync::Mutex;
+
+fn main() {
+  let m = Mutex::new(5);
+  {
+    let mut num = m.lock().unwrap();
+    *num = 6;
+  }
+}
+
+```
+
+- sharing a Mutex<T> between multiple threads
+
+```rust
+use std::sync::{Mutex, Arc};
+use std::thread;
+
+fn main() {
+  // atomic reference counting with Arc<T>
+  let counter = Arc::new(Mutex::new(0));
+  let mut handles = vec![];
+
+  for _ in 0..10 {
+    // increase reference counter for rc
+    let counter = Arc::clone(&counter);
+    let handle = thread::spawn(move || {
+      // we use lock with ownership
+      let mut num = counter.lock().unwrap();
+      *num += 1;
+    });
+    handles.push(handle);
+  }
+
+  for handle in handles {
+      handle.join().unwrap();
+  }
+
+  println!("Result: {}", *counter.lock().unwrap());
+}
+```
+
+## Extensible Concurrency with Sync and Send Traits
+
+- std::makrer trait Send, Sync for concurrency
+- Send marker trait, can be transferred between threads. almost every Rust type except `Rc<T>`
+  - using `Arc<T>` instead of
+- Sync marker trait, to be referenced from multiple threads, any type T is `Sync` if `&T` is `Send`, meaning the refence can be sent safely to another thread
+  - `Rc<T>`, `RefCell<T>` and `Cell<T>` are not `Sync`. use Mutex
+- Implementing `Send` and `Sync` manally is unsafe
 
 # Object Oriented Programming Features of Rust
+
 ## Characteristics of Object-Oriented Languages
+
+- Rust is object oriented, struct and enums have data, impl block provide methods on strcuts and enums
+- `pub` keyword can constrol encapsulation for object
+- using `traits` instead of traditional inheritance
+
 ## Using Trait Objects that Allow for Values of Different Types
+
+- Using `Box<T>` smart pointer for allocaing on heap and `dyn` keyword
+- Using `traits` object in place of a generic or concrete type
+
+```rust
+pub trait Draw {
+  fn draw(&self);
+}
+
+pub struct Screen<T: Draw> {
+  pub components: Vec<T>,
+}
+
+impl<T> Screen<T>
+  where T: Draw {
+  pub fn run(&self) {
+    for component in self.components.iter() {
+      component.draw();
+    }
+  }
+}
+
+pub struct Button {
+  pub width: u32,
+  pub height: u32,
+  pub label: String,
+}
+
+impl Draw for Button {
+  fn draw(&self) {
+    // code to actually draw a button
+  }
+}
+
+use gui::Draw;
+
+struct SelectBox {
+  width: u32,
+  height: u32,
+  options: Vec<String>,
+}
+
+impl Draw for SelectBox {
+  fn draw(&self) {
+    // code to actually draw a select box
+  }
+}
+
+use gui::{Screen, Button};
+
+fn main() {
+  let screen = Screen {
+    components: vec![
+      Box::new(SelectBox {
+        width: 75,
+        height: 10,
+        options: vec![
+          String::from("Yes"),
+          String::from("Maybe"),
+          String::from("No")
+        ],
+      }),
+      Box::new(Button {
+        width: 50,
+        height: 10,
+        label: String::from("OK"),
+      }),
+    ],
+  };
+
+  screen.run();
+}
+```
+
+- when we use`traits`
 ## Implementing an Object-Oriented Design Pattern
 
 # Patterns Match the Structure of Values
