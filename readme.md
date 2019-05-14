@@ -3083,8 +3083,24 @@ fn main() {
 }
 ```
 
-- when we use`traits`
+- Using `traits` object, Rust must use dynamic dispatch, opposed to static dispatch. Rust use pointers inside the trait object to know which method to call
+- Dynamic dispatch prevents the compiler from choosing to inline a method's code, which in tucn prevents some optimizations.
+- object-safe traits into trait object, there are two rules, the return type isn't `Self`, there are no generic parameters.
+  - returning `Self` in trait is not abled to know what type of object
+
+```rust
+pub trait Clone {
+    fn clone(&self) -> Self;
+}
+
+pub struct Screen {
+    pub components: Vec<Box<dyn Clone>>, // violates the ruls of object safety,
+}
+```
+
 ## Implementing an Object-Oriented Design Pattern
+
+- follow the code [step by step](https://doc.rust-lang.org/book/ch17-03-oo-design-patterns.html)
 
 # Patterns Match the Structure of Values
 ## All the Places Patterns May be Used
