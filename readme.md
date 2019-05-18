@@ -3523,13 +3523,622 @@ match msg {
 ```
 
 # Advanced Features
+
 ## Unsafe Rust
+- use the `unsafe` keyword and then start a new block that holds the unsafe cod
+
+
+- dereference a raw pointer
+
+```rust
+let mut num = 5;
+
+// create an immutable and a mutable raw pointer from references.
+let r1 = &num as *const i32;
+let r2 = &mut num as *mut i32;
+
+let address = 0x012345usize;
+let r = address as *const i32;
+
+```
+
+- call an unsafe function or method
+
+```rust
+unsafe fn dangerous() {}
+
+unsafe {
+    dangerous();
+}
+```
+
+- creating a safe abstraction over unsafe code
+
+```rust
+use std::slice;
+
+let address = 0x01234usize;
+let r = address as *mut i32;
+
+let slice: &[i32] = unsafe {
+  slice::from_raw_parts_mut(r, 10000)
+};
+
+fn split_at_mut(slice: &mut [i32], mid: usize) -> (&mut [i32], &mut [i32] {
+  let len = slice.len();
+  let ptr = slice.as_mut_ptr();
+
+  assert!(mid <= len);
+
+  unsafe {
+    (slice::from_raw_parts_mut(ptr, mid),
+      slice::from_raw_parts_mut(ptr.offset(mid as isize), len - mid))
+  }
+}
+```
+
+- using `extern` functions to call external code, interact with code written in another language
+
+```rust
+extern "C" {
+  fn abs(input: i32) -> i32;
+}
+
+fn main() {
+  unsafe {
+    println!("Absolute value of -3 according to C: {}", abs(-3));
+  }
+}
+```
+
+- accessing or modifying a mutable static variable. global variable, which Rust does support but can be problematic with Rust's ownership rules. if two threads are accessing the same mutable global variable, it can cause a data race
+
+```rust
+static HELLO_WORLD: &str = "Hello, world!"; // global variable are called static
+
+fn main() {
+  println!("name is: {}", HELLO_WORLD);
+}
+```
+
+- accessing and modifying mutable static variables in `unsafe`
+
+```rust
+static mut COUNTER: u32 = 0;
+
+fn add_to_count(inc: u32) {
+  unsafe {
+    COUNTER += inc;
+  }
+}
+
+fn main() {
+  add_to_count(3);
+
+  unsafe {
+    println!("COUNTER: {}", COUNTER);
+  }
+}
+```
+
+- implementing an unsafe trait, which has some invariant that compiler can't verify
+
+```rust
+unsafe trait Foo {
+}
+
+// By using unsafe impl, we’re promising that we’ll uphold the invariants that the compiler can’t verify.
+unsafe impl Foo for i32 {
+
+}
+```
+
 ## Advanced Lifetimes
+
+- ensuring one lifetime outlives another with lifetime subtyping. [following the step](https://doc.rust-lang.org/book/ch19-02-advanced-lifetimes.html)
+
+```rust
+struct Context<'a>(&'a str);
+
+struct Parser<'c, 's: 'c> {
+  context: &'c Context<'s>,
+}
+
+impl<'a> Parser<'a> {
+  fn parse<'a>(&'a self) -> Result<(), &'a str> {
+    Err(&self.context.0[1..])
+  }
+}
+```
+
+- lifetime bounds on references to generic types
+
+```rust
+// struct Ref<'a, T>(&'a T); This code now compiles because the T: 'a syntax specifies that T can be any type, but if it contains any references, the references must live at least as long as
+struct Ref<'a, T: 'a>(&'a T);
+
+struct StaticRef<T: 'static>(&'static T);
+```
+
+- inference of trait object lifetimes
+
+```rust
+trait Red { }
+
+struct Ball<'a> {
+  diameter: &'a i32,
+}
+
+impl<'a> Red for Ball<'a> { }
+
+fn main() {
+  let num = 5;
+
+  // we can add a lifetime bound on a trait object like Box<dyn Red> using the syntax Box<dyn Red + 'static> or Box<dyn Red + 'a>
+  let obj = Box::new(Ball { diameter: &num }) as Box<dyn Red>;
+}
+```
+
 ## Advanced Traits
+
+- specififying placeholder types in trait definitions with asscociated type, the difference is that when useing generic, we don't need to annotate type because we can't implement a trait on a type muilple times
+
+```rust
+pub trait Iterator {
+  type Item; // place holder type
+
+  fn next(&mut self) -> Option<Self::Item>;
+}
+
+impl Iterator for Counter {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+      ...
+    }
+}
+```
+
+- default generic type parameter and operator overloading
+
+```rust
+impl Add for Point {
+  type Output = Point;
+
+  fn add(self, other: Point) -> Point {
+    Point {
+      x: self.x + other.x,
+      y: self.y + other.y,
+    }
+  }
+}
+
+
+trait Add<RHS=Self> {
+  type Output;
+
+  // RHS=Self: this syntax is called default type parameters.
+  // RHS when we implement the Add trait, the type of RHS will default to Self which will be the type we’re implementing Add on.
+  // When we implemented Add for Point, we used the default for RHS because we wanted to add two Point instances
+  fn add(self, rhs: RHS) -> Self::Output;
+}
+
+// We have two structs, Millimeters and Meters, holding values in different units. We want to add values in millimeters to values in meters and have the implementation of Add do the conversion correctly.
+use std::ops::Add;
+
+struct Millimeters(u32);
+struct Meters(u32);
+
+impl Add<Meters> for Millimeters {
+  type Output = Millimeters;
+
+  fn add(self, other: Meters) -> Millimeters {
+      Millimeters(self.0 + (other.0 * 1000))
+  }
+}
+```
+
+- fully qualified syntax for disambiguation: calling methods with the same name
+
+```rust
+trait Pilot {
+    fn fly(&self);
+}
+
+trait Wizard {
+    fn fly(&self);
+}
+
+struct Human;
+
+impl Pilot for Human {
+    fn fly(&self) {
+        println!("This is your captain speaking.");
+    }
+}
+
+impl Wizard for Human {
+    fn fly(&self) {
+        println!("Up!");
+    }
+}
+
+impl Human {
+    fn fly(&self) {
+        println!("*waving arms furiously*");
+    }
+}
+
+fn main() {
+    let person = Human;
+    person.fly();
+}
+
+// result *waving arms furiously*,
+
+fn main() {
+    let person = Human;
+    Pilot::fly(&person);
+    Wizard::fly(&person);
+    person.fly();
+}
+
+/* result
+This is your captain speaking.
+Up!
+*waving arms furiously*
+*/
+
+trait Animal {
+    fn baby_name() -> String;
+}
+
+struct Dog;
+
+impl Dog {
+    fn baby_name() -> String {
+        String::from("Spot")
+    }
+}
+
+impl Animal for Dog {
+    fn baby_name() -> String {
+        String::from("puppy")
+    }
+}
+
+fn main() {
+    println!("A baby dog is called a {}", Dog::baby_name());
+}
+
+// result, A baby dog is called a Spot
+
+fn main() {
+    println!("A baby dog is called a {}", Animal::baby_name());
+}
+
+// result, error[E0283]: type annotations required: cannot resolve `_: Animal`
+
+fn main() {
+    println!("A baby dog is called a {}", <Dog as Animal>::baby_name());
+}
+
+// result, A baby dog is called a puppy
+```
+
+- using supertraits to require one traits' functionality within another trait. the trait you rely on is a supertrait of the trait you're implementing
+
+```rust
+use std::fmt;
+
+// specified that OutlinePrint requires the Display trait
+trait OutlinePrint: fmt::Display {
+  fn outline_print(&self) {
+    let output = self.to_string();
+    let len = output.len();
+    println!("{}", "*".repeat(len + 4));
+    println!("*{}*", " ".repeat(len + 2));
+    println!("* {} *", output);
+    println!("*{}*", " ".repeat(len + 2));
+    println!("{}", "*".repeat(len + 4));
+  }
+}
+
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+// error[E0277]: the trait bound `Point: std::fmt::Display` is not satisfied
+impl OutlinePrint for Point {}
+
+use std::fmt;
+
+// implement Display on Point and satisfy the constraint that OutlinePrint requires
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+```
+
+- using the newtype pattern to implement external trait on external type
+
+```rust
+use std::fmt;
+
+struct Wrapper(Vec<String>);
+
+// The downside of using this technique is that Wrapper is a new type, so it doesn’t have the methods of the value it’s holding. We would have to implement all the methods of Vec<T> directly on Wrapper
+impl fmt::Display for Wrapper {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    // Display uses self.0 to access the inner Vec<T>
+    write!(f, "[{}]", self.0.join(", "))
+  }
+}
+
+fn main() {
+    let w = Wrapper(vec![String::from("hello"), String::from("world")]);
+    println!("w = {}", w);
+}
+
+// result, w = [hello, world]
+```
+
 ## Advanced Types
+
+- using the newtype pattern for type safety and abstraction, never confusing and indicating the units of a value, abstracting away some implementation and hiding internal implementation
+
+- creating type synonyms with type aliases
+
+```rust
+type Kilometers = i32;
+
+let x: i32 = 5;
+let y: Kilometers = 5;
+
+println!("x + y = {}", x + y);
+```
+
+- reduce repetition
+
+```rust
+let f: Box<dyn Fn() + Send + 'static> = Box::new(|| println!("hi"));
+fn takes_long_type(f: Box<dyn Fn() + Send + 'static>) { }
+fn returns_long_type() -> Box<dyn Fn() + Send + 'static> { }
+
+// alias
+type Thunk = Box<dyn Fn() + Send + 'static>;
+let f: Thunk = Box::new(|| println!("hi"));
+
+fn takes_long_type(f: Thunk) { }
+fn returns_long_type() -> Thunk {}
+```
+
+- alias with Result<T, E>
+
+```rust
+use std::io::Error;
+use std::fmt;
+
+pub trait Write {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Error>;
+    fn flush(&mut self) -> Result<(), Error>;
+
+    fn write_all(&mut self, buf: &[u8]) -> Result<(), Error>;
+    fn write_fmt(&mut self, fmt: fmt::Arguments) -> Result<(), Error>;
+}
+
+// alias
+type Result<T> = Result<T, std::io::Error>;
+pub trait Write {
+    fn write(&mut self, buf: &[u8]) -> Result<usize>;
+    fn flush(&mut self) -> Result<()>;
+
+    fn write_all(&mut self, buf: &[u8]) -> Result<()>;
+    fn write_fmt(&mut self, fmt: Arguments) -> Result<()>;
+}
+```
+
+- the never type that never returns
+
+- `!` empty type it has no values, call it the `never type`, stand in the place of the return type a function will never return 
+
+```rust
+fn bar() -> ! {}
+
+// continue has ! value
+let guess: u32 = match guess.trim().parse() {
+    Ok(num) => num,
+    Err(_) => continue,
+};
+
+// panic! never type
+impl<T> Option<T> {
+    pub fn unwrap(self) -> T {
+        match self {
+            Some(val) => val,
+            None => panic!("called `Option::unwrap()` on a `None` value"),
+        }
+    }
+}
+
+// ! is a loop:
+rint!("forever ");
+
+loop {
+    print!("and ever ");
+}
+```
+
+- dynamically sized type and the `Sized` trait, To work with DST(dynamically sized types)s, Rust has a particular trait called the Sized trait to determine whether or not a type’s size is known at compile time
+
+```rust
+
+// By default, generic functions will work only on types that have a known size at compile time.
+fn generic<T: Sized>(t: T) { }
+
+// trait bound on ?Sized is the opposite of a trait bound on Sized: we would read this as “T may or may not be Sized.”
+fn generic<T: ?Sized>(t: &T) { }
+```
 ## Advanced Functions & Closures
+
+- function pointer, `fn`, is a type rather than a trait,
+
+```rust
+fn add_one(x: i32) -> i32 {
+    x + 1
+}
+
+fn do_twice(f: fn(i32) -> i32, arg: i32) -> i32 {
+    f(arg) + f(arg)
+}
+
+fn main() {
+    let answer = do_twice(add_one, 5);
+
+    println!("The answer is: {}", answer);
+}
+
+// direct map
+let list_of_numbers = vec![1, 2, 3];
+let list_of_strings: Vec<String> = list_of_numbers
+    .iter()
+    .map(ToString::to_string)
+    .collect();
+
+// using initialize function
+enum Status {
+    Value(u32),
+    Stop,
+}
+
+let list_of_statuses: Vec<Status> =
+    (0u32..20)
+    .map(Status::Value) // to u32
+    .collect();
+```
+
+- returning closures, closures are represented by traits, which means you can't return closure directly
+
+```rust
+// error[E0277]: the trait bound `std::ops::Fn(i32) -> i32 + 'static:
+std::marker::Sized` is not satisfied
+fn returns_closure() -> Fn(i32) -> i32 {
+    |x| x + 1
+}
+
+// Rust doesn';t know how much space it will need to store the closure, we can use a trait object
+fn returns_closure() -> Box<dyn Fn(i32) -> i32> {
+    Box::new(|x| x + 1)
+}
+```
+
 ## Macros
 
+- declarative macro with `macro_rules!`, procedural macros, `#[derive]`, attribute, function like macros
+- the difference between macros and functions, macros are a way of writing code that writes other code, which is known as metaprogramming, reducing the amount of code, can take a vatiable number of parameters, must define orr bring macros into scope before you call them in a file
+- declarative macros with `macro_rules!` for general metaprogramming
+
+```rust
+
+#[macro_export]
+macro_rules! vec {
+  // Within $() is $x:expr, which matches any Rust expression and gives the expression the name $x.
+  // The * following the comma specifies that the pattern matches zero or more of whatever precedes the *
+  ( $( $x:expr ),* ) => {
+    {
+      let mut temp_vec = Vec::new();
+      $(
+        temp_vec.push($x);
+      )*
+      temp_vec
+    }
+  };
+}
+
+let v: Vec<u32> = vec![1, 2, 3];
+
+// same as
+
+let mut temp_vec = Vec::new();
+temp_vec.push(1);
+temp_vec.push(2);
+temp_vec.push(3);
+temp_vecd
+```
+- procedural macros for generating code from attributes. the definitions must reside in their own crate with a special crate type, using any of these kinds of macros takes on a form, consist of a function
+
+```rust
+use proc_macro;
+
+#[some_attribute]
+pub fn some_name(input: TokenStream) -> TokenStream {
+}
+```
+
+- how to write a custom `derive` macro, [following the steps](https://doc.rust-lang.org/book/ch19-06-macros.html#how-to-write-a-custom-derive-macro)
+
+```rust
+extern crate proc_macro;
+
+use crate::proc_macro::TokenStream;
+use quote::quote;
+use syn;
+
+#[proc_macro_derive(HelloMacro)]
+pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust code as a syntax tree
+    // that we can manipulate
+    let ast = syn::parse(input).unwrap();
+
+    // Build the trait implementation
+    impl_hello_macro(&ast)
+}
+
+fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
+    let name = &ast.ident;
+    let gen = quote! {
+        impl HelloMacro for #name {
+            fn hello_macro() {
+                println!("Hello, Macro! My name is {}", stringify!(#name));
+            }
+        }
+    };
+    gen.into()
+}
+
+use hello_macro::HelloMacro;
+use hello_macro_derive::HelloMacro;
+
+#[derive(HelloMacro)]
+struct Pancakes;
+
+fn main() {
+    Pancakes::hello_macro();
+}
+```
+
+- attribute-like macros, allow you to create new attributes
+
+```rust
+#[route(GET, "/")]
+fn index() {}
+
+// signature looks like
+#[proc_macro_attribute]
+pub fn route(attr: TokenStream, item: TokenStream) -> TokenStream { }
+```
+
+- function-like macros
+
+```rust
+let sql = sql!(SELECT * FROM posts WHERE id=1);
+
+// signature looks like
+#[proc_macro]
+pub fn sql(input: TokenStream) -> TokenStream { }
+```
 # Final Project: Building a Multithreaded Web Server
 ## A Single Threaded Web Server
 ## Turning our Single Threaded Server into a Multithreaded Server
