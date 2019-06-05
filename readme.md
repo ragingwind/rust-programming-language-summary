@@ -1,6 +1,6 @@
-# The Rust Programming Language
+# [The Rust Programming Language](https://doc.rust-lang.org)
 
-> Matterial is [https://doc.rust-lang.org/](https://doc.rust-lang.org/), Environment is macOS
+> Summary, Short version of The Rust Programming Language
 
 # Introduction
 
