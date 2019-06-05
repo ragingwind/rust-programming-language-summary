@@ -1,4 +1,4 @@
-# [The Rust Programming Language](https://doc.rust-lang.org)
+# [The Rust Programming Language](https://doc.rust-lang.org/book/)
 
 > Summary, Short version of The Rust Programming Language
 
