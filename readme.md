@@ -1,6 +1,6 @@
-# [The Rust Programming Language](https://doc.rust-lang.org/book/)
+# [The Rust Programming Language](https://doc.rust-lang.org/book/) Summary
 
-> Summary, Short version of The Rust Programming Language
+> Summary, Short version of The Rust Programming Language. Updated on 2023-02 with Rust 1.65 over version aka 2021 edition
 
 # Introduction
 
