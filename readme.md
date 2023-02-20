@@ -1,13 +1,49 @@
 # [The Rust Programming Language](https://doc.rust-lang.org/book/) Summary
 
-> Summary, Short version of The Rust Programming Language. Updated on 2023-02 with Rust 1.65 over version aka 2021 edition
+> Summary, Short version of The Rust Programming Language. 
+
+## Version
+
+- Updated on 2023-02 with Rust 1.65 over version aka 2021 edition
+
+# Foreword
+
+- Rust empowers you to reach farther, to program with confidence in a wider variety of domains then did before
+
+- Not only low-level systems programming, ergonomic enough to make CLI apps, web servers, web app, Raspberry Pi, and many other kinds of code quite pleasant to write
 
 # Introduction
 
-- Rust, gatekeeper role by refusing to compile code with these elusive bugs, including concurrency bugs
+## Who Rust Is For
+
+### Teams of Developers
+
+Rust is proving to be a productive tools for collaborating among large teams of developer
+
 - Cargo, dependency manager and build tool
-- Rustfmt, coding style
-- The Rust Language Server for IDE
+- Rustfmt, formatting tools to ensure a consistent coding style
+- The Rust Language Server for IDE integrations for code completion and iline error message
+
+### Students
+
+- For students who are interested in learning about system concepts
+- The community is very welcoming and happy to answer student questions
+
+### Companies
+
+- Hundreds of companies, large and small, use Rust in production for a variety of tasks
+- CLI tools, web services, DevOps tooling, embedded devices, audio and video analysis and transcoding, cryptocurrencies, bioinformatics, search engines, Internet of Things applications, machine learning, and even major parts of the Firefox web browser
+
+### Open Source Developers
+
+- For people who want to build the Rust programming language, community, developer tools, and libraries
+
+### People Who Value Speed and Stability
+
+- For people who crave speed and stability in a language
+- The Rust compiler’s checks ensure stability through feature additions and refactoring
+- By striving for zero-cost abstractions, higher-level features that compile to lower-level code as fast as code written manually
+- Rust’s greatest ambition is to eliminate the trade-offs that programmers have accepted for decades by providing safety and productivity, speed and ergonomics
 
 # Getting Started
 
