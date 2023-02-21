@@ -1,3 +1,3 @@
 mkdir -p ./dist
-rustc main.rs -o ./dist/main
+rustc main.rs -o ./target/main
 ./dist/main
