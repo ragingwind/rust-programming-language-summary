@@ -27,11 +27,13 @@ Rust is proving to be a productive tools for collaborating among large teams of 
 ### Students
 
 - For students who are interested in learning about system concepts
+
 - The community is very welcoming and happy to answer student questions
 
 ### Companies
 
 - Hundreds of companies, large and small, use Rust in production for a variety of tasks
+
 - CLI tools, web services, DevOps tooling, embedded devices, audio and video analysis and transcoding, cryptocurrencies, bioinformatics, search engines, Internet of Things applications, machine learning, and even major parts of the Firefox web browser
 
 ### Open Source Developers
@@ -41,8 +43,11 @@ Rust is proving to be a productive tools for collaborating among large teams of 
 ### People Who Value Speed and Stability
 
 - For people who crave speed and stability in a language
+
 - The Rust compiler’s checks ensure stability through feature additions and refactoring
+
 - By striving for zero-cost abstractions, higher-level features that compile to lower-level code as fast as code written manually
+
 - Rust’s greatest ambition is to eliminate the trade-offs that programmers have accepted for decades by providing safety and productivity, speed and ergonomics
 
 # Getting Started
@@ -51,9 +56,12 @@ Rust is proving to be a productive tools for collaborating among large teams of 
 
 - Run `curl https://sh.rustup.rs -sSf | sh` to download `rustup`
   - `rustup`: command line tool for managing Rust version and tools
+
 - Add the following line to your env `export PATH="$HOME/.cargo/bin:$PATH"`
+
 - If installation is already done, run `rustup update`
   - To uninstall, `rustup self uninstall`
+
 - On macOS, we need xcode command line tools by using `xcode-select --install`
 
 ## Hello, World!
@@ -81,31 +89,34 @@ $ ./main
 ## Hello, Cargo
 
 - Cargo is Rust's build system and package manager
-- `cargo new $PROJECT_NAME —bin`
-- TOML format using in Cargo.toml
 
+- `cargo new $PROJECT_NAME` to create a project
+  - `-—bin` extra option for executable binary
+  - `-—lib` extra option for library
+
+- carg ogenerate Cargo.toml in TOML format
 ```rust
-  [package]
-  name = "hello_cargo"
-  version = "0.1.0"
-  authors = ["Your Name <you@name.com>"]
+[package]
+name = "hello_cargo"
+version = "0.1.0"
+edition = "2021"
 
-  [dependencies]
+[dependencies]
 ```
 
-- commands
+- Building and running a Cargo projects
 
-```rust
-# build
+```sh
+# building
 $ cargo build
 
-# check before build
-cargo check
-
-# run
+# running
 $ ./target/debug/hello_cargo
 or
 $ cargo run
+
+# checking before build
+cargo check
 ```
 
 # Programming a Guessing Game
