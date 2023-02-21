@@ -49,19 +49,31 @@ Rust is proving to be a productive tools for collaborating among large teams of 
 
 ## Installation
 
-- Run `$ curl https://sh.rustup.rs -sSf | sh`
+- Run `curl https://sh.rustup.rs -sSf | sh` to download `rustup`
+  - `rustup`: command line tool for managing Rust version and tools
 - Add the following line to your env `export PATH="$HOME/.cargo/bin:$PATH"`
 - If installation is already done, run `rustup update`
   - To uninstall, `rustup self uninstall`
+- On macOS, we need xcode command line tools by using `xcode-select --install`
 
 ## Hello, World!
 
+- Create a project directory
+```sh
+mkdir hello_world
+cd hello_world
+```
+
+- New open the main.rs file then save with belows:
 ```rust
 // main.rs
 fn main() {
   println!("Hello, world!"); // `!` is macro. end with ';'
 }
+```
 
+- Compile main.rs with `rustc`
+```sh
 $ rustc main.rs
 $ ./main
 ```
