@@ -105,7 +105,6 @@ edition = "2021"
 ```
 
 - Building and running a Cargo projects
-
 ```sh
 # building
 $ cargo build
@@ -117,114 +116,73 @@ $ cargo run
 
 # checking before build
 cargo check
+
+# update crates
+cargo update
 ```
 
 # Programming a Guessing Game
 
-- Create a new project and run
+Hand-on project, you will lean about let, match, methods, asscicated function, external crates and more
 
-```
+## Setting Up a New Project
+
+- Create a new project and run
+```sh
 $ cargo new guessing_game --bin
 $ cargo ru
 ```
 
-- Standard library
-
-```
-use std::io
-```
-
-- Storing values with variables
-
-```
-let mut guess = String::new();
-let foo = bar
-let foo = 5; // immutable
-let mut bar = 4; // mutable
-```
-
-- Handling potential failure
-  - `Result` types are enumerations
-  - without `except`, you will see warning
+# Processing a Guess
 
 ```rust
-// using exepct for io::Result type
-io::stdin().read_line(&mut guess)
-​	.expect("Failed to read line");
-```
+use std::io;
+use std::cmp::Ordering;
+// use external crate rand, see Cargo.toml
+use rand::Rng;
 
-- `{}` is placeholder to print variable
+fn main() {
+    // print message
+    println!("Guess the number!");
 
-```rust
-let x = 5;
-let y = 10;
+    // gen_range is de
+    let secret_number = rand::thread_rng().gen_range(1..=101);
 
-println!("x = {} and y = {}", x, y);
-```
+    println!("the serect number is: {}", secret_number);
 
-- Add dependencies
-  - `cargo build` to install dependencies
-  - `cargo update` to update dependencies
+    loop {
+        println!("Please input your guess.");
 
-```
-// in Cargo.toml
-[dependencies]
+        // immutable variable to save user input
+        let mut guess = String::new();
 
-rand = "0.3.14"
-```
+        io::stdin()
+            // read stdio buffer and write it to guess
+            .read_line(&mut guess)
+            .expect("Failed to read line");
 
-- Using dependencies
+        // handling invalid input
+        let guess: u32 = match guess.trim().parse() {
+            // convert to u32
+            Ok(num) => num,
+            Err(_) => continue,
+        };
 
-```
-extern crate rand;
-use rand:Rng;
-```
+        println!("You guessed: {}", guess);
 
-- `match` expression
-
-```
-use std:cmp::Ordering;
-
-match guess.cmp(&cecret_number) {
-​   Ordering::Less => println!("Too small!"),
-​   Ordering::Greater => println!("Too big!"),
-​   Ordering::Equal => println!("Too win!"),
-}
-```
-
-- Convert value
-
-```
-let guess: u32 = guess.trim().parse().expect("Error");
-```
-
-- Loop
-
-```
-loop {
-}
-```
-
-- Quit the loop
-
-```
-match guess.cmp(&secret_number) {
-    Ordering::Less => println!("Too small!"),
-    Ordering::Greater => println!("Too big!"),
-    Ordering::Equal => {
-      println!("You win!");
-      break;
+        // match expression to compare guess and secret_number
+        match guess.cmp(&secret_number) {
+            // Ordering type is another enum, Less, Greater, Equal
+            Ordering::Less => println!("Too small!"),
+            Ordering::Greater => println!("Too big!"),
+            Ordering::Equal => {
+                println!("You win!");
+                // quite the loop
+                break;
+            }
+        }
     }
 }
-```
-
-- Handling invalid value
-
-```
-let guess: u32 = match guess.trim().parse() {
-​    Ok(num) => num,
-​    Err(_) => continue,
-};
 ```
 
 # Common Programming Concepts
