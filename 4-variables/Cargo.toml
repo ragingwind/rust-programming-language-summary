@@ -2,5 +2,7 @@
 name = "variables"
 version = "0.1.0"
 authors = ["Jimmy Moon <ragingwind@gmail.com>"]
+edition = "2021"
 
 [dependencies]
+try-catch = "0.2.2"

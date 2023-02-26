@@ -1,6 +1,6 @@
 # [The Rust Programming Language](https://doc.rust-lang.org/book/) Summary
 
-> Summary, Short version of The Rust Programming Language. 
+> Summary, Short version of The Rust Programming Language.
 
 ## Version
 
@@ -55,11 +55,13 @@ Rust is proving to be a productive tools for collaborating among large teams of 
 ## Installation
 
 - Run `curl https://sh.rustup.rs -sSf | sh` to download `rustup`
+
   - `rustup`: command line tool for managing Rust version and tools
 
 - Add the following line to your env `export PATH="$HOME/.cargo/bin:$PATH"`
 
 - If installation is already done, run `rustup update`
+
   - To uninstall, `rustup self uninstall`
 
 - On macOS, we need xcode command line tools by using `xcode-select --install`
@@ -67,12 +69,14 @@ Rust is proving to be a productive tools for collaborating among large teams of 
 ## Hello, World!
 
 - Create a project directory
+
 ```sh
 mkdir hello_world
 cd hello_world
 ```
 
 - New open the main.rs file then save with belows:
+
 ```rust
 // main.rs
 fn main() {
@@ -81,6 +85,7 @@ fn main() {
 ```
 
 - Compile main.rs with `rustc`
+
 ```sh
 $ rustc main.rs
 $ ./main
@@ -91,10 +96,12 @@ $ ./main
 - Cargo is Rust's build system and package manager
 
 - `cargo new $PROJECT_NAME` to create a project
+
   - `-—bin` extra option for executable binary
   - `-—lib` extra option for library
 
 - carg ogenerate Cargo.toml in TOML format
+
 ```rust
 [package]
 name = "hello_cargo"
@@ -105,6 +112,7 @@ edition = "2021"
 ```
 
 - Building and running a Cargo projects
+
 ```sh
 # building
 $ cargo build
@@ -128,6 +136,7 @@ Hand-on project, you will lean about let, match, methods, asscicated function, e
 ## Setting Up a New Project
 
 - Create a new project and run
+
 ```sh
 $ cargo new guessing_game --bin
 $ cargo ru
@@ -187,10 +196,12 @@ fn main() {
 
 # Common Programming Concepts
 
+> This chapter covers concepts that appear in almost every programming language and how they work in Rust.
+
 ## Variables and Mutability
 
-- Default variables are immutable
-- Using `mut` to mutable variable
+- By default, variables are immutable
+- Using `mut` to make a variable as mutable
 
 ## Differences Between Variable and Constants
 
@@ -231,24 +242,25 @@ spaces = spaces.len();
 
 Single value: integers, floating-point numbers, Booleans, and characters
 
-- Integers: i/u8, i/u16 ... i/u128, i/usize
-  - Number literals:
-    - Decimal: 98_222
-    - Hex: 0xff
-    - Octal: 0o77
-    - Binary?: 0b1111_0000
-    - Byte(u8): b'A'
-    - u8: 57u8
-  - Overflow, in debug, it panic, in production, wrapping
+- Integers Types: i/u8, i/u16, i/u32, i/u64, i/u128, i/usize
+- Intergers literals:
+  - Decimal: `98_222` // 98.222
+  - Hex: 0xff
+  - Octal: 0o77
+  - Binary?: `0b1111_0000` // 11110000
+  - Byte(u8):` b'A'`
+  - u8: `57u8`
+- Overflow, in debug, it panic, in production, wrapping
 - Floating-Point: f64, default, same speeed as f32, double precision. f32, single precision
 - Numberic Operations: `+, -, *, / , %`
 - The Boolean Type: `true, false`
-- The Character Type: `char`, single quotes. `string literal`, double quotes. unicode scalar values range from U+0000 to u+D7FFF and U+E000 to U+10FFFF
+- The Character Type: unicode scalar values range from U+0000 to u+D7FFF and U+E000 to U+10FFFF
+  - `char`
+  - "string literal"
 
 ### Compound Types
 
-Group multiple values into one type, tuple and arrays
-
+- Group multiple values into one type, tuple and arrays
 - The Tuple Type, fixed length, once declared, cannot grow or shirnk in size
 
 ```rust
@@ -284,7 +296,8 @@ let run_time_error = a[index];
 
 - Using snake case
 - Defining function anywhere
-- Parameters
+
+### Parameters
 
 ```rust
 fn another_function(x) {
@@ -296,12 +309,18 @@ fn another_function(y: i32) {
 }
 ```
 
-- Statements and Expressions
+### Statements and Expressions
 
 ```rust
+
+fn statement_fn() {
+  // Statements are instructions that perform some action and do not return a value
+  println!("function!");
+}
+
 fn main() {
   let x = 5;
-  let y = {
+  let y = { // Expressions evaluate to a resultant value
     let x = 3;
     x + 1 // no semicolun at the end of the expression
   }
@@ -310,7 +329,7 @@ fn main() {
 }
 ```
 
-- Functions with Return Values
+### Functions with Return Values
 
 ```rust
 fn five() -> i32 {
@@ -320,14 +339,6 @@ fn five() -> i32 {
 fn plus_one(x: i32) -> i32 {
   x + 1
 }
-
-fn return_x(x: i32) -> i32 {
-  if (x == 1) {
-    return 0; // return keyword
-  }
-
-  x
-}
 ```
 
 ## Comments
@@ -336,56 +347,86 @@ fn return_x(x: i32) -> i32 {
 
 ## Control Flow
 
-- if expression
+### if expression
 
 ```rust
 let number = 3;
+
 if number < 5 {
   println!("number is under 5");
 } else {
-   println!("number isnot under 5");
+  println!("number isnot under 5");
 }
 
-// error
+// error, missmatch type, expected `bool`, found integer
+// must be `number != 0`
 if number {
   ...
 }
 
-// fix it
-if number != 0 {
-  ...
-}
-
-// else if
-if number != 0 {
-  ...
-} else if number % 2 {
-  ...
+// handling multiple if
+if number % 4 == 0 {
+  println!("number is divisible by 4");
+} else if number % 3 == 0 {
+  println!("number is divisible by 3");
+} else if number % 2 == 0 {
+  println!("number is divisible by 2");
+} else {
+  println!("number is not divisible by 4, 3, or 2");
 }
 
 // if in a let statement
 let condition = true;
-let number = if confition {
-  5 // must be same type returns
-} else {
-  6
-}
+// must be return same type variable
+let number = if confition { 5 } else { 6 };
 ```
 
-- Repeatition with Loops
+### Repeatition with Loops
+
+- Returning Values from Loops
 
 ```rust
 fn main() {
   let mut counter = 0;
-  let result = loop {
+  let result = loop { // loop
     counter += 1;
 
     println!("again!");
 
     if counter == 10 {
-      break counter * 2
+      // return value from loop
+      break counter * 2 // return 10 * 2
     }
   }
+
+   println!("The result is {result}"); // The result is 20
+}
+```
+
+- Loop Labels to Disambiguate Between Multiple Loops
+
+```rust
+fn main() {
+  let mut count = 0;
+  'counting_up: loop {
+    println!("count = {count}");
+    let mut remaining = 10;
+
+    loop {
+      println!("remaining = {remaining}");
+      if remaining == 9 {
+        break;
+      }
+      if count == 2 {
+        // break parent loop, 
+        break 'counting_up;
+      }
+      remaining -= 1;
+    }
+
+    count += 1;
+  }
+  println!("End count = {count}");
 }
 ```
 
@@ -406,7 +447,7 @@ fn main() {
 ```rust
 fn main() {
   let a = [10, 20, 30, 40, 50];
-  for element in a.iter() {
+  for element in a {
     println!("val is {}", element);
   }
 
@@ -1360,6 +1401,7 @@ crate::sound::instrument::guitar();
 ```
 
 - using in pub
+
 ```rust
 mod sound {
   pub mod instrument {
@@ -1424,7 +1466,7 @@ mod plant {
 
 fn main() {
   let mut v = plant::Vegetable::new("squash");
-  
+
   v.name = String::from("butternut squash");
   println!("{} are delicious", v.name);
 
@@ -1494,10 +1536,10 @@ use crate::sound::instrument::guitar;
 use std::collections::HashMap;
 
 fn main() {
-  
+
   guitar();
 
-  
+
   let mut map = HashMap::new();
   map.insert(1, 2);
 }
@@ -1695,7 +1737,7 @@ let s2 = "bar";
 s1.pus_str(s2); // string slice, no ownership about s1, foobar
 
 //single character
-s.push('l'); 
+s.push('l');
 
 // ownership
 let s1 = String::from("Hello, ");
@@ -1703,7 +1745,7 @@ let s2 = String::from("world!");
 // note s1 has been moved here and can no longer be used
 // s1 called add(self, s:&str), add takes onwnership from self
 // &s2 use deref coercion, doesn't takes ownership
-let s3 = s1 + &s2; 
+let s3 = s1 + &s2;
 
 // format!
 let s1 = String::from("tic");
@@ -1720,7 +1762,7 @@ let h = s1[0]; // error cannot be indexed by integer
 // len, String is a warpper over a `Vec<u8>
 let let = String::From("hola").len(); // byte length, 4
 let len = String::from("Здравствуйте").len(); // bytes length, 24
-let hello = "Здравствуйте"; 
+let hello = "Здравствуйте";
 let answer = &hello[0]; // return not 3, 208, which first byte
 
 // “नमस्ते” written in the Devanagari script is stored as a vector
@@ -1734,7 +1776,7 @@ let s = &hello[0..1]; // panic, index is not a char boundary
 
 // Iterating
 for c in "नमस्ते".chars() {
-  println!("{}", c); // न म स ् त े 
+  println!("{}", c); // न म स ् त े
 }
 
 for c in "नमस्ते".bytes() {
@@ -2264,6 +2306,7 @@ let i = ImportantExcerpt { part: first_sentence }; // can’t outlive the refere
 ```
 
 # Testing
+
 ## Writings tests
 
 ```rust
@@ -2323,6 +2366,7 @@ mod tests {
 - ignore test with `#[ignore]` and `cargo test -- --ingore`
 
 ## Test Organinzation
+
 - `#[cfg(test)]` annotation on the tests module tells Rust run test code only
 - integration test with `tests` directory, without `#[cfg(test)]`
 - using `setup` function at `tests/common.rs` to setup test
@@ -2349,10 +2393,9 @@ mod tests {
 - `if let` and `unwrap_or_else` is same
 - `'a` lifetime parameters specify, lifetime is connected to the lifetime of the return value. in this cases, the return vector that reference slices of the arguments contents
 - `is_err` will return false, env variable is set to anything
-- `eprintln!` macro that prints to the standard error stream, 
+- `eprintln!` macro that prints to the standard error stream,
 
 # Functional Language Features: Iterators and Closures
-
 
 ## Closures: Anonymous Functions that Can Capture Their Environment
 
@@ -2388,9 +2431,10 @@ let add_one_v4 = |x|               x + 1  ;
 ```rust
 let example_closure = |x| x;
 
-let s = example_closure(String::from("hello")); // String locked in 
+let s = example_closure(String::from("hello")); // String locked in
 let n = example_closure(5); // error
 ```
+
 - captureing the environment with closures
 
 ```rust
@@ -2409,7 +2453,7 @@ fn main() {
   // FnOnce, capture from enclosing scope, take ownership, can't take ownership more than once
   // FnMut, can change the environment
   // Fn, borrows values from environment immutably
-  fn euqal_to_x(z: i32) -> bool { z == x } 
+  fn euqal_to_x(z: i32) -> bool { z == x }
 
   // move
   let x = vec![1, 2, 3];
@@ -2540,7 +2584,7 @@ opt-level = 3
 
 - making useful documentation comments with `///`
 
-```rust
+````rust
 /// Adds one to the number given.
 ///
 /// # Examples
@@ -2554,7 +2598,7 @@ opt-level = 3
 pub fn add_one(x: i32) -> i32 {
     x + 1
 }
-```
+````
 
 - `cargo doc --open` will build the HTML
 - other sections, `Panics`, `Erros`, `Safety`
@@ -2569,6 +2613,7 @@ pub use self::kinds::PrimaryColor;
 // src/main.rs
 use art::PrimaryColor;
 ```
+
 - `cargo login` for setting up a crates.io account
 - adding metadata
 
@@ -2665,7 +2710,7 @@ enum List {
 use crate::List::{Cons, Nil};
 
 fn main() {
-  let list = Cons(1, 
+  let list = Cons(1,
       Box::new(Cons(2,
         Box::new(Cons(3,
           Box::new(Nil)))));
@@ -2674,7 +2719,7 @@ fn main() {
 
 ## Treating Smart Pointers Like Regular References with the Deref Trait
 
-- `Deref` trait allows you to customize the behavior of derefence operator *
+- `Deref` trait allows you to customize the behavior of derefence operator \*
 
 ```rust
 let x = 5;
@@ -2772,10 +2817,11 @@ fn main() {
     let c = Cons(3, Rc::clone(&a))
     println!("count", Rc::strong_coint(&a)); // 3
   }
-  
+
   println!("count", Rc::strong_coint(&a)); // 4
 }
 ```
+
 ## RefCell and the Interior Mutability Pattern
 
 - RefCell<T> allows mutable borrows check at `runtime`. You can mutate the value inside the `RefCell<T>` even when the `RefCell<T>` is immutable
@@ -2800,7 +2846,7 @@ fn send(&self, message: &str) {
 ## Reference Cycles Can Leak Memory
 
 - preventing memory leaks entirely is not one of Rust's guarantees in the same way that disallowing data races at compile time is, meaning memory leaks are memory safe in Rust
-- using Week<T>::upgrade to get Some or None whether Rc<T> has been dropped or not, and Rc::downgrade (to increase the weak_count), 
+- using Week<T>::upgrade to get Some or None whether Rc<T> has been dropped or not, and Rc::downgrade (to increase the weak_count),
 
 ```rust
 use std::rc::{Rc, Weak};
@@ -2838,7 +2884,6 @@ fn main() {
     println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
 }
 ```
-
 
 # Fearless Concurrency
 
@@ -3162,7 +3207,7 @@ while let Some(top) = stack.pop() {
 
 - `for` loops
 
-```rust
+````rust
 let v = vec!['a', 'b', 'c'];
 
 for (index, value) in v.iter().enumerate() {
@@ -3173,7 +3218,7 @@ for (index, value) in v.iter().enumerate() {
 
 ```rust
 let (x, y, z) = (1, 2, 3);
-```
+````
 
 - function parameters
 
@@ -3478,7 +3523,7 @@ match num {
 }
 
 /*
-result, 
+result,
 Some(4), less than five: 4
 Some(10), 10
 */
@@ -3525,13 +3570,13 @@ match msg {
     println!("Found an id in range: {}", id_variable)
   },
   Message::Hello { id: 10...12 } => {
-    // println!("Found an id in another range {}", id) 
+    // println!("Found an id in another range {}", id)
     // raise error, cannot find value `id` in this scope
     // the pattern code isn’t able to use the value from the id field
     println!("Found an id in another range")
   },
   Message::Hello { id } => {
-    // without range, the value available to use in the arm’s code in a variable named id. 
+    // without range, the value available to use in the arm’s code in a variable named id.
     println!("Found some other id: {}", id)
   },
 }
@@ -3542,8 +3587,8 @@ match msg {
 # Advanced Features
 
 ## Unsafe Rust
-- use the `unsafe` keyword and then start a new block that holds the unsafe cod
 
+- use the `unsafe` keyword and then start a new block that holds the unsafe cod
 
 - dereference a raw pointer
 
@@ -3959,7 +4004,7 @@ pub trait Write {
 
 - the never type that never returns
 
-- `!` empty type it has no values, call it the `never type`, stand in the place of the return type a function will never return 
+- `!` empty type it has no values, call it the `never type`, stand in the place of the return type a function will never return
 
 ```rust
 fn bar() -> ! {}
@@ -3998,6 +4043,7 @@ fn generic<T: Sized>(t: T) { }
 // trait bound on ?Sized is the opposite of a trait bound on Sized: we would read this as “T may or may not be Sized.”
 fn generic<T: ?Sized>(t: &T) { }
 ```
+
 ## Advanced Functions & Closures
 
 - function pointer, `fn`, is a type rather than a trait,
@@ -4084,6 +4130,7 @@ temp_vec.push(2);
 temp_vec.push(3);
 temp_vecd
 ```
+
 - procedural macros for generating code from attributes. the definitions must reside in their own crate with a special crate type, using any of these kinds of macros takes on a form, consist of a function
 
 ```rust
@@ -4156,7 +4203,11 @@ let sql = sql!(SELECT * FROM posts WHERE id=1);
 #[proc_macro]
 pub fn sql(input: TokenStream) -> TokenStream { }
 ```
+
 # Final Project: Building a Multithreaded Web Server
+
 ## A Single Threaded Web Server
+
 ## Turning our Single Threaded Server into a Multithreaded Server
+
 ## Graceful Shutdown and Cleanup
