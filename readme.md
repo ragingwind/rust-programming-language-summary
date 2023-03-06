@@ -864,6 +864,8 @@ let slice = &a[1..3];
 
 # Using Structs to Structre Related Data
 
+> Structure, is a custom data type that lets you package together and name multiple related values that make up a meaningful group
+
 ## Defining and Instantiation Structs
 
 - The pieces of a struct can be different type, can be named
@@ -888,7 +890,7 @@ let user1 = User {
 }
 ```
 
-- Get value with dot notation. it the instance is mutable, we can change a value by using the dot notation
+- Get value with `dot notation`. it the instance is mutable, we can change a value by using the dot notation
 - Certain field as mutable is not allowed
 
 ```rust
@@ -902,7 +904,7 @@ let mut user1 = User {
 user1.email = String::from("someone@example.com");
 ```
 
-- Builder function
+- Using builder function
 
 ```rust
 // implicity return that new instance
@@ -915,19 +917,23 @@ fn build_user(email: String, username: String) -> User {
     sign_in_count: 1,
   }
 }
+```
 
-// shorthand version
+### Using the Field Init Shorthand
+
+```rust
 fn build_user(email: String, username: String) -> User {
-  email,
+  email, // no repetition
   username,
   active: true,
   sign_in_count: 1,
 }
 ```
 
-- Creating instances from other instnace with update value, or struct update syntax
+### Creating instances from other instnace with update value, or struct update syntax
 
 ```rust
+// without update syntax
 let user2 = User {
   email: String::from("another@example.com"),
   username: String::from("another"),
@@ -943,37 +949,50 @@ let user2 = User {
 }
 ```
 
-- Tuple structs, can add meaning the struct name but not names associated with their field
+### Using Tuple Structs Without Named Fields to Create Different Types
 
 ```rust
-struct Color(i32, i32, i32);
+struct Color(i32, i32, i32); // Tuple structs
 struct Point(i32, i32, i32);
 
 let black = Color(0, 0, 0);
 let origin = Point(0, 0, 0);
 ```
 
-- Unit-like structs, don't have any fileds, behave simliarly to `()`
+### Unit-like Structs without Any Field
+
+```rust
+struct AlwaysEqual;
+
+fn main() {
+  let subject = AlwaysEqual;
+}
+```
 
 ## An Example Program Using Struct
 
-- More meaning
-
 ```rust
-// with parameters
+// sample code with multiple arguments
 fn area(width: u32, height: u32) -> u32 {
   width * height
 }
 
 area(width, height);
+```
 
-// with tuple
+### Refactoring with Tuples
+
+```rust
 fn area(dimensions: (u32, u32)) -> u32 {
   return dimensions.0 * dimensions.1
 }
 
 area((30, 50));
+```
 
+### Refactoring with Structs: Adding More Meaning
+
+```rust
 // with struct
 struct Rectangle {
   width: u32,
@@ -987,40 +1006,36 @@ fn area(rectangle: &Rectangle) -> u32 {
 let rect = Rectangle { width: 30, height: 50 };
 
 area(&rect);
-
 ```
 
-- Adding useful functionality with derived traits
+### Adding Useful Functionality with Derived Traits
 
 ```rust
-[derive(Debug)]
+#[derive(Debug)] // define outer attribute
 struct Rectangle {
-    width: u32,
-    height: u32,
+  width: u32,
+  height: u32,
 }
 
 fn main() {
-    let rect1 = Rectangle { width: 30, height: 50 };
+  let rect1 = Rectangle { width: 30, height: 50 };
+  println!("rect 1 is {:?}", rect1); // {} doesn't work because of lack of Display implement
 
-    // rect1 is Rectangle { width: 30, height: 50 }
-    println!("rect 1 is {:?}", rect1);
 
-    // rect1 is Rectangle {
-    //     width: 30,
-    //     height: 50
-    // }
-    println!("rect 1 is {:#?}", rect1);
+  let rect2 = Rectangle {
+    width: dbg!(30 * scale),  // dbg! macro to prints the stderr
+    height: 50
+  };
+
+  dbg!(&rect2);
 }
 ```
 
 ## Method Syntax
 
-- Methods are similar to functions, methods are different from functions in that they're defined within the context of a struct
+> Methods are similar to functions, methods are different from functions in that they're defined within the context of a struct
 
 ### Defining Methods
-
-- &self instead of rectangle: &Rectangle
-- `&mut self`, to take an ownership
 
 ```rust
 #[derive(Debug)]
@@ -1029,9 +1044,17 @@ struct Rectangle {
   height: u32,
 }
 
+// starts with impl
 impl Rectangle {
+  // &self instead of rectangle: &Rectangle
+  // `&mut self`, to take an ownership
   fn area(&self) -> u32 {
     self.width * self.height
+  }
+
+  // same name as one of the struct's fields
+  fn width(&self) -> bool {
+    self.width > 0
   }
 }
 
@@ -1044,9 +1067,10 @@ fn main() {
 }
 ```
 
-- `Automatic Referencing and Derefencing`, rust automatically adds in `&, &mut or *`
+### Where’s the -> Operator?
 
 ```rust
+// Rust has a feature called automatic referencing and dereferencing, automatically adds in `&, &mut or *` instead of using `->`. following are same
 p1.distance(&p2);
 (&p1).distance(&p2);
 ```
@@ -1060,16 +1084,19 @@ impl Rectangle {
     self.width > other.width && self.height > other.height
   }
 }
+
+...
+
+rect1.can_hold(&rect2);
 ```
 
 ### Associated Functions
 
-- Assoociated functions, without `self` parameter, still functions, not methods
-- Often used for constructor that will return a new instance of the struct
-
 ```rust
 impl Rectangle {
+  // Assoociated functions, without `self` parameter, still functions, not methods
   fn square(size: u32) -> Rectangle {
+    // Often used for constructor that will return a new instance of the struct
     Rectangle { width: size, height: size }
   }
 }
