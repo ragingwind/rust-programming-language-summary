@@ -1125,17 +1125,15 @@ impl Rectangle {
 ## Defining an Enum
 
 ````rust
+// define enum without type
 enum IpAddrKind {
   V4,
   V6,
 }
 
-```rust
-// assign
 let four = IpAddrKind::V4;
 let six = IpAddrKind::V6;
 
-// define a function
 fn route(ip_type: IpAddrKind) {...}
 
 struct IpAddr {
@@ -1153,7 +1151,7 @@ let loopback = IpAddr {
   address: String::from("::1"),
 }
 
-// associated String
+// define enum value associated String
 enum IpAddr {
   V4(String),
   V6(String),
@@ -1162,7 +1160,7 @@ enum IpAddr {
 let home = IpAddr::V4(String::From("127.0.0.1"));
 let loopback = IpAddr::V6(String::From("::1"));
 
-// different types and amounts of associated data
+// define enum with different types and amounts of associated data
 enum IpAddr {
   V4(u8, u8, u8, u8),
   V6(String),
@@ -1171,7 +1169,7 @@ enum IpAddr {
 let home = IpAddr::V4(String::From(127, 0, 0, 1));
 let loopback = IpAddr::V6(String::From("::1"));
 
-// embedded struct
+// define enum embedded struct as associated type
 struct Ipv4Addr {
   ...
 }
@@ -1185,7 +1183,7 @@ enum IpAddr {
   V6(Ipv6Addr)
 }
 
-// wide variety of type embedded
+// define enum with variant
 enum Message {
   Quit,
   Move { x:i32, y: i32 },
@@ -1193,6 +1191,7 @@ enum Message {
   ChangeColor(i32, i32, i32)
 }
 
+// define method using impl
 impl Message {
   fn call(&self) {
     ...
@@ -1205,14 +1204,16 @@ m.call();
 
 ## The `Option` Enum and Its Advantages Over Null Values
 
+- Rust does not have nulls, but it does have an enum that being present of absent
 - Another enum, compiler can check whether you've handled all the cases
 - Option<T> is defined by the standard library
 - Option value, `Some`, contains a value, or `None`, does not
 
 ```rust
+// Option is defined by the standard libaray, included in the prelude
 enum Option<T> {
-  Some(T),
   None,
+  Some(T),
 }
 
 // hold number type
@@ -1227,33 +1228,38 @@ let absent_number: Option<i32> = None;
 let x: i8 = 5;
 let y: Options<i8> = Some(5);
 
-let sum = x + y; // error, i8 + std::option:Option<i8>
-
-// uee the value with various method, https://doc.rust-lang.org/std/option/enum.Option.html
-let mut x = Some(2);
-match x.as_mut() {
-    Some(v) => *v = 42,
-    None => {},
-}
-assert_eq!(x, Some(42));
-
-let x = Some("value");
-assert_eq!(x.expect("the world is ending"), "value");
-
-let x: Option<u32> = Some(2);
-assert_eq!(x.is_some(), true);
-
-let x: Option<u32> = None;
-assert_eq!(x.is_some(), false);
-
-let x: Option<u32> = Some(2);
-assert_eq!(x.is_none(), false);
-
-let x: Option<u32> = None;
-assert_eq!(x.is_none(), true);
+let sum = x + y; // error, they are different type, i8 + std::option:Option<i8>
 ```
 
-- Sample uses
+### [Use Some Value with various method](https://doc.rust-lang.org/std/option/enum.Option.html)
+
+```rust
+let mut x = Some(2);
+
+match x.as_mut() {
+    Some(v) => *v = 42, // matched
+    None => {},
+}
+
+assert_eq!(x, Some(42)); // valid
+
+let x = Some("value");
+assert_eq!(x.expect("the world is ending"), "value"); // valid, expect return some value, but if some value is None? panics with "the world is ending"
+
+let x: Option<u32> = Some(2);
+assert_eq!(x.is_some(), true); // valid
+
+let x: Option<u32> = None;
+assert_eq!(x.is_some(), false); // valid
+
+let x: Option<u32> = Some(2);
+assert_eq!(x.is_none(), false); // valid
+
+let x: Option<u32> = None;
+assert_eq!(x.is_none(), true); // valid
+```
+
+### Some Value usecases
 
 ```rust
 fn divide(numerator: f64, denominator: f64) -> Option<f64> {
@@ -1270,7 +1276,7 @@ let result = divide(2.0, 3.0);
 // Pattern match to retrieve the value
 match result {
     // The division was valid
-    Some(x) => println!("Result: {}", x),
+    Some(x) => println!("Result: {}", x), // 0.6666666666666666
     // The division was invalid
     None    => println!("Cannot divide by 0"),
 }
