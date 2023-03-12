@@ -1,6 +1,6 @@
 #[allow(unused_variables)]
 fn vector_basic() {
-        // creating a new vector
+    // creating a new vector
     let v: Vec<i32> = Vec::new();
     let v2 = vec![1, 2, 3];
     

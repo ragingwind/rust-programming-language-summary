@@ -11,7 +11,7 @@ mod tests {
     }
     #[test]
     fn another() {
-        panic!("Make this tesdt fail")
+        panic!("Make this test fail")
     }
 
     #[test]
@@ -24,7 +24,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic()]
+    #[should_panic]
     fn should_panic() {
         panicer()
     }
