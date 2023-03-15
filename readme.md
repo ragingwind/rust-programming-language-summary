@@ -2301,24 +2301,39 @@ println!("{:?}", scores);
 
 # Errror Handling
 
-- Two types of categories:
-  - recoverable: file not found, Result<T, E>
+- Rust requires you to acknowledge the possibility of an error and take some action before your code will compile.
+- Rust group errors into two types of categories:
+  - recoverable: file not found error, Result<T, E>
   - unrecoverable: symptoms of bugs, accessing end of an array, panic!
+- Rust doesn't have exceptions, manage Result<T, E> or get panic!
 
 ## Unrecoverable Erros With panic!
 
-- call panic! when you stop the program, unwind and clean stack, and quit
-- using 'abort' stop immediately
+- When a panic occurs(or `panic!`), the program starts `unwinding` but it cleanup is a lot of work so Rust allow you to choose the alrernative of immediately aborting
 
 ```
 [profile.release]
 panic = 'abort'
 ```
 
-- using a panic! Backtrace `RUST_BACKTRACE=1 cargo run`
-- cargo symbol are enabled by default `cargo build, cargo run` without `--release`
+## Using a panic! Backtrace
+
+- Unlike C, Rust will stop execution and refuse to contitue in case of invalid index to protect your program from this sort of vulnerablity like `buffer overread`
+- To show backtrace, `RUST_BACKTRACE=1 cargo run`
+- To enable cargo symbol `cargo build, cargo run` without `--release`
+
+```rust
+fn main() {
+    let v = vec![1, 2, 3];
+
+    v[99];
+}
+```
 
 ## Recoverable Error with Result
+
+- Opening file failed is that no need to terminate the process, we can create the file
+- Function returl `Result` because function could fail
 
 ```rust
 enum Result<T, E> {
@@ -2327,7 +2342,7 @@ enum Result<T, E> {
 }
 ```
 
-- when ssucceeds return Ok(T), failed, return Err(E)
+- When ssucceeds return Ok(T), failed, return Err(E)
 
 ```rust
 use std:fs::File;
@@ -2337,16 +2352,14 @@ fn main() {
 
   let f = match f {
     Ok(file) => file,
-    Err(error) => {
-      panic!("There was a problem opening file: {:?}", error)
-    },
+    Err(error) => panic!("There was a problem opening file: {:?}", error),
   };
 }
 ```
 
 ### Matching on Different Errors
 
-- basics
+- Take different actions for different failure reasons
 
 ```rust
 use std:fs::File;
@@ -2367,7 +2380,9 @@ fn main() {
 }
 ```
 
-- closures
+### Alternatives to Using match with Result<T, E>
+
+- Using closures and the `unwrap_or_else` without `match`
 
 ```rust
 use std::fs::File;
@@ -2388,6 +2403,23 @@ fn main() {
 
 ### Shortcuts for Panic on Error: unwrap and expect
 
+- Using `match` works well but verbose
+- `Result<T, E>` type has many helper methods defined
+- `Ok` variant in `Result` reutn the value inside the `Ok`
+- `Err` variant in `Result`, `unwrap` will call `panic!`
+
+```rust
+use std::fs::File;
+
+fn main() {
+ // panic! call without hello.txt
+  let greeting_file = File::open("hello.txt").unwrap();
+}
+```
+
+- `expect` lets us choose the `panic!` error message
+- Using `expect` instead of `unwrap` and providing `good error message`
+
 ```rust
 use std:fs:File;
 
@@ -2402,57 +2434,136 @@ fn main() {
 
 ### Propagating Errors
 
+- Return the error to the calling code instead of handling the error within the function itself
+
 ```rust
 fn read_username_from_file() -> Rsult<String, io::Error> {
   let f = File::open("hello.txt");
 
   let mut f = match f {
-    Ok(file) => file,
-    Err(e) => return Err(e),
+    Ok(file) => file,        // return String
+    Err(e) => return Err(e), // return error to the code that called the function
+                             // use the return keyword to return early out of the
+                             // function entirely and pass the error value from File::open
   }
 
   let mut s = String::new();
 
   match f.read_to_string(&mut s) {
     Ok(_) => Ok(s),
-    Errr(e) =>> Err(e),
+    Err(e) => Err(e), // return error
   }
 }
+```
 
-// shrotcut for propagating?
+#### A Shortcut for Propagating Errors: the ? Operator
+
+- Uses the ? operator, placed after a Result value is defined to work in almost the same way as the match expressions we defined to handle the Result values
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
 fn read_username_from_file() -> Result<String, io::Error> {
-  let mut f = File::open("hello.txt")?; // ? placed after a Result, work in same way as match, as getting error, will be return
-  let mut s = String::new();
-  f.read_to_string(&mut s)?;
-  Ok(s)
+    let mut username_file = File::open("hello.txt")?;
+    let mut username = String::new();
+    username_file.read_to_string(&mut username)?;
+    Ok(username)
 }
+```
 
+- Shorten the code futher by chaining mehtod call immediately after the `?`
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
 
 fn read_username_from_file() -> Result<String, io::Error> {
   let mut s = String::new();
   File::open("hello.txt")?.read_to_string(&mut s)?;
   Ok(s)
 }
+```
 
+- More shorten the code by using `fs::read_to_string`
+
+```rust
 fn read_username_from_file() -> Result<String, io::Error> {
   fs::read_to_string("hello.txt")
 }
+```
 
-// ? operator can only be used in functions that return Result
-fn main() {
-  let f = File::open("hello.txt"); // error
+#### Where The ? Operator Can Be Used
+
+- `?` operator can only be used in functions whose return type is compatible with the value the `?` is used on
+
+```rust
+fn main() { // main is incompatible with `Result` or `Option`
+  let f = File::open("hello.txt"); // ^ cannot use the `?` operator in a function that returns `()`
 }
+```
+
+- `?` can be used with `Option<T>` values
+- The behavior of the ? operator when called on an Option<T> is similar to its behavior when called on a Result<T, E>
+- If the value is None, the None will be returned early from the function at that point
+- If the value is Some, the value inside the Some is the resulting value of the expression and the function continues
+
+```rust
+fn last_char_of_first_line(text: &str) -> Option<char> {
+    text.lines().next()?.chars().last()
+}
+```
+
+- Because it’s the entry and exit point of executable programs, and `there are restrictions` on what its return type can be for the programs to behave as expected.
+    - Main can also return a Result<(), E>
+    - You can read Box<dyn Error> to mean “any kind of error.” 
+- Main function returns a Result<(), E>, the executable will exit with a value of 0 if main returns Ok(())
+- Main function will exit with a nonzero value if main returns an Err value
+
+```rust
+use std::error::Error;
+use std::fs::File;
 
 fn main() -> Result<(), Box<dyn Error>> {
-  let f = File::open("hello.txt"); // error
+    let greeting_file = File::open("hello.txt")?;
 
-  Ok(())
+    Ok(())
 }
 ```
 
 ## To panic! or Not ro panic!
 
-default is Result but below cases are need to use panic!
+- You could call panic! for any error situation, whether there’s a possible way to recover or not, but then you’re making the decision that a situation is unrecoverable on behalf of the calling code. When you choose to return a Result value, you give the calling code options
+
+### Examples, Prototype Code, and Tests
+
+When you’re writing an example to illustrate some concept, also including robust error-handling code can make the example less clear. In examples, it’s understood that a call to a method like unwrap that could panic is meant as a placeholder for the way you’d want your application to handle errors, which can differ based on what the rest of your code is doing.
+
+### Cases in Which You Have More Information Than the Compiler
+
+if you can ensure by manually inspecting the code that you’ll never have an Err variant, it’s perfectly acceptable to call unwrap, and even better to document the reason you think you’ll never have an Err variant in the expect text.
+
+```rust
+  use std::net::IpAddr;
+
+  let home: IpAddr = "127.0.0.1"
+      .parse()
+      .expect("Hardcoded IP address should be valid");
+```
+
+### Guidelines for Error Handling
+
+- Panic when it’s possible that your code could end up in a `bad state`
+- The `bad state` is something that is unexpected, as opposed to something that will likely happen occasionally, like a user entering data in the wrong forma
+- Your code after this point needs to rely on not being in this bad state, rather than checking for the problem at every step.
+- There’s not a good way to encode this information in the types you use
+
+> If someone calls your code and passes in values that don’t make sense, it’s best to return an error if you can so the user of the library can decide what they want to do in that case. However, in cases where continuing could be insecure or harmful, the best choice might be to call panic! and alert the person using your library to the bug in their code so they can fix it during development. However, when failure is expected, it’s more appropriate to return a Result than to make a panic! call
+
+### Creating Custom Types for Validation
+
+- Parse the guess as an i32 instread of only a u32 to allow potentially negative numbers, and then add a check for the number being in range
+- However, this is not an ideal solution: if it was absolutely critical that the program only operated on values between 1 and 100, and it had many functions with this requirement, having a check like this in every function would be tedious
 
 ```rust
 loop {
@@ -2472,7 +2583,8 @@ loop {
     // --snip--
 }
 
-// panic! better, use invalid variable from out of context
+- If value doesn’t pass this test, we make a panic! call, which will alert the programmer who is writing the calling code that they have a bug they need to fix, because creating a Guess with a value outside this range would violate the contract that Guess::new is relying on
+- Function that has a parameter or returns only numbers between 1 and 100 could then declare in its signature that it takes or returns a Guess rather than an i32 and wouldn’t need to do any additional checks in its body.
 
 pub struct Guess {
     value: i32,
