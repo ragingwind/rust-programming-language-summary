@@ -1463,12 +1463,12 @@ As you write large programs, organizing your code will become increasingly impor
 
 - crate: smallest amount of code that Rust compiler consider at a time
   - binary crate:
-    - programs you can compile to an executable that you can run
+  - programs you can compile to an executable that you can run
   - library crate:
-    - don't have main
-    - don't compile to an executable
-    - shared with multiple pojects
-    - Rustaceans says `crate`, they mean library crate
+  - don't have main
+  - don't compile to an executable
+  - shared with multiple pojects
+  - Rustaceans says `crate`, they mean library crate
 - package: a bundle of one or more crates that provides a set of functionality
   - contains a Cargo.toml that describe how to build one or more crates
   - Cargo, is binary crate for build, also contgains a library crate
@@ -2515,8 +2515,8 @@ fn last_char_of_first_line(text: &str) -> Option<char> {
 ```
 
 - Because it’s the entry and exit point of executable programs, and `there are restrictions` on what its return type can be for the programs to behave as expected.
-    - Main can also return a Result<(), E>
-    - You can read Box<dyn Error> to mean “any kind of error.” 
+  - Main can also return a Result<(), E>
+  - You can read Box<dyn Error> to mean “any kind of error.” 
 - Main function returns a Result<(), E>, the executable will exit with a value of 0 if main returns Ok(())
 - Main function will exit with a nonzero value if main returns an Err value
 
@@ -3256,7 +3256,7 @@ fn main() {
                                        ^^^^^^^^^^^^^^^^ borrowed value does not live long enough
   }
   println!("The longest string is {}", result);
-                                       ------ borrow later used here
+                                      ------ borrow later used here
 }
 ```
 
@@ -3366,10 +3366,10 @@ let s: &'static str = "I have a static lifetime.";
 ### Generic Type Parameters, Trait Bounds, and Lifetimes Together
 
 - Let’s briefly look at the syntax of specifying generic type parameters, trait bounds, and lifetimes all in one function!
-    - It has an extra parameter named ann of the generic type T, which can be filled in by any type that implements the Display trait as specified by the where clause. 
-    - This extra parameter will be printed using {}, which is why the Display trait bound is necessary. 
-    - Lifetimes are a type of generic, the declarations of the lifetime parameter 'a
-    - The generic type parameter T go in the same list inside the angle brackets after the function name.
+  - It has an extra parameter named ann of the generic type T, which can be filled in by any type that implements the Display trait as specified by the where clause. 
+  - This extra parameter will be printed using {}, which is why the Display trait bound is necessary. 
+  - Lifetimes are a type of generic, the declarations of the lifetime parameter 'a
+  - The generic type parameter T go in the same list inside the angle brackets after the function name.
 
 ```rust
 use std::fmt::Display;
@@ -3647,8 +3647,8 @@ cargo test -- --ignored
 
 - Testing is a complex discipline, and different people use different terminology and organization
 - The Rust community thinks about tests in terms of two main categories: `unit tests` and `integration tests`
-    - `Unit tests` are `small and more focused`, testing one module in isolation at a time, and can test private interfaces
-    - `Integration tests` are entirely external to your library and use your code in the same way any other external code would, using only the public interface and potentially exercising multiple modules per test.
+  - `Unit tests` are `small and more focused`, testing one module in isolation at a time, and can test private interfaces
+  - `Integration tests` are entirely external to your library and use your code in the same way any other external code would, using only the public interface and potentially exercising multiple modules per test.
 
 ### Unit Tests
 
@@ -3770,26 +3770,527 @@ fn it_adds_two() {
 
 # An I/O Project: Building a Command Line Program
 
+- This chapter is a recap of the many skills you’ve learned so far and an exploration of a few more standard library features
+  - Organizing code (using what you learned about modules in Chapter 7)
+  - Using vectors and strings (collections, Chapter 8)
+  - Handling errors (Chapter 9)
+  - Using traits and lifetimes where appropriate (Chapter 10)
+  - Writing tests (Chapter 11)
+
 ## Accepting Command Line Arguments
 
-- if any arguments contains invalid Unicode, panic will be raised
-- first vector is the name of our binary
-- `:?` debug formatter for vector
-- guildline for task
-  - Split your program into a main.rs and lib.rs, and move your program's logic to lib.rs
-  - As long as your command line parsing logic is small, it can remain in main.rs
-  - When the command line parsing logic starts getting complicated, extract it from main.rs adn move it to lib.rs
-  - for main function
-    - Calling the command line parsing logic with arguments values
-    - Setting up any other confiuration
-    - Calling a rin function in lib.rs
-    - Handling the error if run return an error
-- unwrap_or_else, defined on Result<T, E> by the standard library, allow us to define some custom non-panic! error handling
-- `Box<dyn Error> is trait object to return Error trait
-- `if let` and `unwrap_or_else` is same
-- `'a` lifetime parameters specify, lifetime is connected to the lifetime of the return value. in this cases, the return vector that reference slices of the arguments contents
-- `is_err` will return false, env variable is set to anything
-- `eprintln!` macro that prints to the standard error stream,
+- Create a new project with, as always, `cargo new`
+
+```sh
+$ cargo new minigrep
+     Created binary (application) `minigrep` project
+$ cd minigrep
+```
+
+### Reading the Argument Values
+
+- To enable minigrep to read the values of command line arguments we pass to it, we’ll need the std::env::args function provided in Rust’s standard library
+- Bring the `std::env` module into scope with a use statement 
+  - In cases where the desired function is nested in more than one module, we’ve chosen to bring the parent module into scope rather than the function
+  - `std::env::args` will panic if any argument contains `invalid Unicode`. If your program needs to accept arguments containing invalid Unicode, use `std::env::args_os` instead
+```rust
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    dbg!(args);
+}
+```
+
+- Print the vector using the debug macro
+
+```sh
+$ cargo run -- needle haystack
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished dev [unoptimized + debuginfo] target(s) in 1.57s
+     Running `target/debug/minigrep needle haystack`
+[src/main.rs:5] args = [
+    "target/debug/minigrep",
+    "needle",
+    "haystack",
+]
+```
+
+### Saving the Argument Values in Variables
+
+- As we saw when we printed the vector, the program’s name takes up the first value in the vector at args[0], so we’re starting arguments at index 1
+- Run by `cargo run -- test sample.txt`
+
+```rust
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let query = &args[1];
+    let file_path = &args[2];
+
+    println!("Searching for {}", query);
+    println!("In file {}", file_path);
+}
+```
+
+## Reading a File
+
+- First, we bring in a relevant part of the standard library with a use statement: we need `std::fs` to handle files.
+- The new statement fs::read_to_string takes the file_path, opens that file, and returns a `std::io::Result<String>` of the file’s contents.
+- Run by `cargo run -- the poem.txt`
+
+```rust
+use std::env;
+use std::fs;
+
+fn main() {
+    // --snip--
+    println!("In file {}", file_path);
+
+    let contents = fs::read_to_string(file_path)
+        .expect("Should have been able to read the file");
+
+    println!("With text:\n{contents}");
+}
+```
+
+## Refactoring to Improve Modularity and Error Handling
+
+### Separation of Concerns for Binary Projects
+
+- the Rust community has developed guidelines for splitting the separate concerns of a binary program when main starts getting large.
+  - Split your program into a main.rs and a lib.rs and move your program’s logic to lib.rs.
+  - As long as your command line parsing logic is small, it can remain in main.rs.
+  - When the command line parsing logic starts getting complicated, extract it from main.rs and move it to lib.rs.
+
+#### Extracting the Argument Parser
+
+- Extract the functionality for parsing arguments into a function that main will call to prepare for moving the command line parsing logic to src/lib.rs
+- This rework may seem like overkill for our small program, but we’re refactoring in small, incremental steps
+
+```rust
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let (query, file_path) = parse_config(&args);
+
+    // --snip--
+}
+
+fn parse_config(args: &[String]) -> (&str, &str) {
+    let query = &args[1];
+    let file_path = &args[2];
+
+    (query, file_path)
+}
+```
+
+#### Grouping Configuration Values
+
+- At the moment, we’re returning a tuple, but then we immediately break that tuple into individual parts again. This is a sign that perhaps we don’t have the right abstraction yet
+- We’ll instead put the two values into one struct and give each of the struct fields a meaningful name
+- There are a number of ways we could manage the String data; the easiest, though somewhat inefficient, route is to call the clone method on the values. This will make a full copy of the data for the Config instance to own, which takes more time and memory than storing a reference to the string data. However, cloning the data also makes our code very straightforward because we don’t have to manage the lifetimes of the references
+- The Trade-Offs of Using clone: it’s okay to copy a few strings to continue making progress because you’ll make these copies only once and your file path and query string are very small
+
+```rust
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let config = parse_config(&args);
+
+    println!("Searching for {}", config.query);
+    println!("In file {}", config.file_path);
+
+    let contents = fs::read_to_string(config.file_path)
+        .expect("Should have been able to read the file");
+
+    // --snip--
+}
+
+struct Config {
+    query: String,
+    file_path: String,
+}
+
+fn parse_config(args: &[String]) -> Config {
+    let query = args[1].clone();
+    let file_path = args[2].clone();
+
+    Config { query, file_path }
+}
+```
+
+#### Creating a Constructor for Config
+
+- We can create instances of types in the standard library, such as String, by calling String::new. Similarly, by changing parse_config into a new function associated with Config, we’ll be able to create instances of Config by calling Config::new
+
+```rust
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let config = Config::new(&args);
+
+    // --snip--
+}
+
+// --snip--
+
+impl Config {
+    fn new(args: &[String]) -> Config {
+        let query = args[1].clone();
+        let file_path = args[2].clone();
+
+        Config { query, file_path }
+    }
+}
+```
+
+### Fixing the Error Handling
+
+#### Improving the Error Message
+
+```rust
+// --snip--
+fn new(args: &[String]) -> Config {
+    if args.len() < 3 {
+        panic!("not enough arguments");
+    }
+    // --snip--
+```
+
+#### Returning a Result Instead of Calling panic!
+
+- We’re also going to change the function name from new to build because many programmers expect new functions to never fail.
+- When Config::build is communicating to main, we can use the Result type to signal there was a problem. Then we can change main to convert an Err variant into a more practical error for our users without the surrounding text about thread 'main' and RUST_BACKTRACE that a call to panic! causes
+- Our build function returns a Result with a Config instance in the success case and a `&'static str` in the error case. Our error values `will always be string literals that have the 'static lifetime`
+
+```rust
+impl Config {
+    fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+
+        let query = args[1].clone();
+        let file_path = args[2].clone();
+
+        Ok(Config { query, file_path })
+    }
+}
+```
+
+#### Calling Config::build and Handling Errors
+
+- We’ve used a method we haven’t covered in detail yet: unwrap_or_else, which is defined on Result<T, E> by the standard library. Using unwrap_or_else allows us to define some custom, non-panic! error handling
+- We’ve added a new use line to bring process from the standard library into scope. The code in the closure that will be run in the error case is only two lines: we print the err value and then call process::exit
+
+```rust
+use std::process;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+
+    // --snip--
+```
+
+### Extracting Logic from main
+
+- Extract a function named run that will hold all the logic currently in the main function that isn’t involved with setting up configuration or handling errors
+
+```rust
+fn main() {
+    // --snip--
+
+    println!("Searching for {}", config.query);
+    println!("In file {}", config.file_path);
+
+    run(config);
+}
+
+fn run(config: Config) {
+    let contents = fs::read_to_string(config.file_path)
+        .expect("Should have been able to read the file");
+
+    println!("With text:\n{contents}");
+}
+
+// --snip--
+```
+
+#### Returning Errors from the run Function
+
+- Instead of allowing the program to panic by calling expect, the run function will return a Result<T, E> when something goes wrong
+- First, we changed the return type of the run function to `Result<(), Box<dyn Error>>`
+- We used the trait object `Box<dyn Error>` (and we’ve brought std::error::Error into scope with a use statement at the top)
+  - `Box<dyn Error>` means the function will return a type that implements the Error trait, but we don’t have to specify what particular type the return value will be. This gives us flexibility to return error values that may be of different types in different error cases. `The dyn keyword is short for “dynamic.”`
+- Second, we’ve removed the call to expect in favor of the ? operator. Rather than panic! on an error, `? will return the error value from the current function` for the caller to handle.
+
+#### Handling Errors Returned from run in main
+
+- Use `if let` rather than `unwrap_or_else` to check whether run returns an `Err value` and call `process::exit(1)`
+
+```rust
+fn main() {
+    // --snip--
+
+    println!("Searching for {}", config.query);
+    println!("In file {}", config.file_path);
+
+    if let Err(e) = run(config) {
+        println!("Application error: {e}");
+        process::exit(1);
+    }
+}
+```
+
+### Splitting Code into a Library Crate
+
+Let’s move all the code that isn’t the main function from src/main.rs to src/lib.rs:
+
+- The run function definition
+- The relevant use statements
+- The definition of Config
+- The Config::build function definition
+
+## Developing the Library’s Functionality with Test-Driven Development
+
+We’ll add the searching logic to the minigrep program using the test-driven development (TDD) process with the following steps:
+
+  1. Write a test that fails and run it to make sure it fails for the reason you expect.
+  2. Write or modify just enough code to make the new test pass.
+  3. Refactor the code you just added or changed and make sure the tests continue to pass.
+  4. Repeat from step 1!
+
+### Writing a Failing Test
+
+- Let’s remove the println! statements from src/lib.rs and src/main.rs that we used to check the program’s behavior.
+
+```rust
+// src/lib.rs
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    vec![]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_result() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+}
+```
+
+- Run by `cargo test`
+
+### Writing Code to Pass the Test
+
+Our program needs to follow these steps:
+
+- Iterate through each line of the contents
+- Check whether the line contains our query string
+- If it does, add it to the list of values we’re returning
+- If it doesn’t, do nothing
+- Return the list of results that match
+
+```rust
+// src/lib.rs
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+
+    // Iterating Through Lines with the lines Method
+    for line in contents.lines() {
+        // Check whether the line contains our query string
+        if line.contains(query) {
+            // If it does, add it to the list of values we’re returning
+            results.push(line);
+        } // If it doesn’t, do nothing
+    }
+
+    results // Return the list of results that match
+}
+```
+
+- Run by `cargo test`
+
+#### Using the search Function in the run Function
+
+```rust
+// src/lib.rs
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.file_path)?;
+
+    for line in search(&config.query, &contents) {
+        println!("{line}");
+    }
+
+    Ok(())
+}
+```
+
+## Working with Environment Variables
+
+Improve minigrep by adding an extra feature: an option for case-insensitive searching that the user can turn on via an environment variable
+
+### Writing a Failing Test for the Case-Insensitive search Function
+
+```rust
+// src/lib.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn case_sensitive() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Duct tape.";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
+        assert_eq!(
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, contents)
+        );
+    }
+}
+```
+
+### Implementing the search_case_insensitive Function
+
+- The only difference is that we’ll lowercase the query and each line so whatever the case of the input arguments
+
+```rust
+pub fn search_case_insensitive<'a>(
+    query: &str,
+    contents: &'a str,
+) -> Vec<&'a str> {
+    let query = query.to_lowercase();
+    let mut results = Vec::new();
+
+    for line in contents.lines() {
+        if line.to_lowercase().contains(&query) {
+            results.push(line);
+        }
+    }
+
+    results
+}
+```
+
+- Run by `cargo test`
+- We’ll add a configuration option to the Config struct to switch between case-sensitive and case-insensitive search
+
+```rust
+// src/lib.rs
+pub struct Config {
+    pub query: String,
+    pub file_path: String,
+    pub ignore_case: bool,
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.file_path)?;
+
+    let results = if config.ignore_case {
+        search_case_insensitive(&config.query, &contents)
+    } else {
+        search(&config.query, &contents)
+    };
+
+    for line in results {
+        println!("{line}");
+    }
+
+    Ok(())
+}
+```
+
+- Finally, we need to check for the environment variable. The functions for working with environment variables are in the env module in the standard library
+
+```rust
+// src/lib.rs
+use std::env;
+// --snip--
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+
+        let query = args[1].clone();
+        let file_path = args[2].clone();
+
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+
+        Ok(Config {
+            query,
+            file_path,
+            ignore_case,
+        })
+    }
+}
+```
+
+- Run by `cargo run -- to poem.txt` or `IGNORE_CASE=1 cargo run -- to poem.txt`
+
+## Writing Error Messages to Standard Error Instead of Standard Output
+
+We’re writing all of our output to the terminal using the println! macro. In most terminals, there are two kinds of output: standard output (stdout) for general information and standard error (stderr) for error messages.
+
+### Checking Where Errors Are Written
+
+Command line programs are expected to send error messages to the standard error stream so we can still see error messages on the screen even if we redirect the standard output stream to a file. Our program is not currently well-behaved: we’re about to see that it saves the error message output to a file instead!
+
+### Printing Errors to Standard Error
+
+- The standard library provides the eprintln! macro that prints to the standard error stream, so let’s change the two places we were calling println! to print errors to use eprintln! instead.
+
+```rust
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+
+    if let Err(e) = minigrep::run(config) {
+        eprintln!("Application error: {e}");
+        process::exit(1);
+    }
+}
+```
+
+- Run by `cargo run > output.txt` or `cargo run -- to poem.txt > output.txt`
 
 # Functional Language Features: Iterators and Closures
 

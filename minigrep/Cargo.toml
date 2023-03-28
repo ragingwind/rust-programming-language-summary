@@ -1,6 +1,0 @@
-[package]
-name = "minigrep"
-version = "0.1.0"
-authors = ["Jimmy Moon <ragingwind@gmail.com>"]
-
-[dependencies]
