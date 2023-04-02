@@ -1,5 +1,5 @@
-use std::rc::{Rc, Weak};
 use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
 #[derive(Debug)]
 struct Node {
@@ -15,7 +15,6 @@ fn main() {
         children: RefCell::new(vec![]),
     });
 
-    // leaf strong = 1, weak = 0
     println!(
         "leaf strong = {}, weak = {}",
         Rc::strong_count(&leaf),
@@ -38,7 +37,6 @@ fn main() {
             Rc::weak_count(&branch),
         );
 
-        // leaf strong = 2, weak = 0
         println!(
             "leaf strong = {}, weak = {}",
             Rc::strong_count(&leaf),
@@ -46,10 +44,8 @@ fn main() {
         );
     }
 
-    // leaf parent = None
     println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
 
-    // leaf strong = 1, weak = 0
     println!(
         "leaf strong = {}, weak = {}",
         Rc::strong_count(&leaf),
