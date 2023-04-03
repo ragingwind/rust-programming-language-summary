@@ -6552,103 +6552,488 @@ fn main() {
 
 ## Characteristics of Object-Oriented Languages
 
-- Rust is object oriented, struct and enums have data, impl block provide methods on strcuts and enums
-- `pub` keyword can constrol encapsulation for object
-- using `traits` instead of traditional inheritance
+- Rust is influenced by many programming paradigms, including OOP
+
+### Objects Contain Data and Behavior
+
+> Object-oriented programs are made up of objects. An object packages both data and the procedures that operate on that data. The procedures are typically called methods or operations
+
+- Using this definition, Rust is object-oriented: structs and enums have data, and impl blocks provide methods on structs and enums
+- Even though structs and enums with methods aren’t called objects
+
+### Encapsulation that Hides Implementation Details
+
+- We can use the `pub keyword` to decide which modules, types, functions, and methods in our code should be public, and by default everything else is private
+
+### Inheritance as a Type System and as Code Sharing
+
+- Rust takes the different approach of using `trait` objects instead of inheritance
 
 ## Using Trait Objects that Allow for Values of Different Types
 
-- Using `Box<T>` smart pointer for allocaing on heap and `dyn` keyword
-- Using `traits` object in place of a generic or concrete type
+- We’ll create a library crate called gui that contains the structure of a GUI library. This crate might include some types for people to use, such as Button or TextField
+
+### Defining a Trait for Common Behavior
+
+- `Trait` objects differ from traditional objects in that we can’t add data to a trait object
+- `Trait` objects purpose is to allow abstraction across common behavior
 
 ```rust
 pub trait Draw {
-  fn draw(&self);
+    fn draw(&self);
 }
+```
 
+- `components`, this vector is of type Box<dyn Draw>, which is a trait object; it’s a stand-in for any type inside a Box that implements the Draw trait
+
+```rust
+pub struct Screen {
+    pub components: Vec<Box<dyn Draw>>,
+}
+```
+
+- This works differently from defining a struct that uses a generic type parameter with trait bounds.
+- we could have defined the Screen struct using a generic type and a trait bound 
+
+```rust
 pub struct Screen<T: Draw> {
-  pub components: Vec<T>,
+    pub components: Vec<T>,
 }
 
 impl<T> Screen<T>
-  where T: Draw {
-  pub fn run(&self) {
-    for component in self.components.iter() {
-      component.draw();
+where
+    T: Draw,
+{
+    pub fn run(&self) {
+        for component in self.components.iter() {
+            component.draw();
+        }
     }
-  }
 }
+```
 
+### Implementing the Trait
+
+- We’ll add some types that implement the Draw trait
+
+```rust
 pub struct Button {
-  pub width: u32,
-  pub height: u32,
-  pub label: String,
+    pub width: u32,
+    pub height: u32,
+    pub label: String,
 }
 
 impl Draw for Button {
-  fn draw(&self) {
-    // code to actually draw a button
-  }
+    fn draw(&self) {
+        // code to actually draw a button
+    }
 }
+```
 
+- If someone using our library decides to implement a SelectBox struct that has width, height, and options fields, they implement the Draw trait on the SelectBox type as well
+
+```rust
 use gui::Draw;
 
 struct SelectBox {
-  width: u32,
-  height: u32,
-  options: Vec<String>,
+    width: u32,
+    height: u32,
+    options: Vec<String>,
 }
 
 impl Draw for SelectBox {
-  fn draw(&self) {
-    // code to actually draw a select box
-  }
-}
-
-use gui::{Screen, Button};
-
-fn main() {
-  let screen = Screen {
-    components: vec![
-      Box::new(SelectBox {
-        width: 75,
-        height: 10,
-        options: vec![
-          String::from("Yes"),
-          String::from("Maybe"),
-          String::from("No")
-        ],
-      }),
-      Box::new(Button {
-        width: 50,
-        height: 10,
-        label: String::from("OK"),
-      }),
-    ],
-  };
-
-  screen.run();
+    fn draw(&self) {
+        // code to actually draw a select box
+    }
 }
 ```
 
-- Using `traits` object, Rust must use dynamic dispatch, opposed to static dispatch. Rust use pointers inside the trait object to know which method to call
-- Dynamic dispatch prevents the compiler from choosing to inline a method's code, which in tucn prevents some optimizations.
-- object-safe traits into trait object, there are two rules, the return type isn't `Self`, there are no generic parameters.
-  - returning `Self` in trait is not abled to know what type of object
+- Our library’s user can now write their main function to create a Screen instance
+- To the Screen instance, they can add a SelectBox and a Button by putting each in a Box<T> to become a trait object
+- By specifying Box<dyn Draw> as the type of the values in the components vector, we’ve defined Screen to need values that we can call the draw method on
 
 ```rust
-pub trait Clone {
-    fn clone(&self) -> Self;
+use gui::{Button, Screen};
+
+fn main() {
+    let screen = Screen {
+        components: vec![
+            Box::new(SelectBox {
+                width: 75,
+                height: 10,
+                options: vec![
+                    String::from("Yes"),
+                    String::from("Maybe"),
+                    String::from("No"),
+                ],
+            }),
+            Box::new(Button {
+                width: 50,
+                height: 10,
+                label: String::from("OK"),
+            }),
+        ],
+    };
+
+    screen.run();
 }
 
-pub struct Screen {
-    pub components: Vec<Box<dyn Clone>>, // violates the ruls of object safety,
+- The advantage of using trait objects and Rust’s type system to write code similar to code using duck typing is that we never have to check whether a value implements a particular method at runtime or worry about getting errors if a value doesn’t implement a method but we call it anyway
+- Rust won’t compile our code if the values don’t implement the traits that the trait objects need
+
+```rust
+use gui::Screen;
+
+fn main() {
+    let screen = Screen {
+        components: vec![Box::new(String::from("Hi"))],
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Draw` is not implemented for `String`
+    };
+
+    screen.run();
 }
 ```
+
+### Trait Objects Perform Dynamic Dispatch
+
+- When we use trait objects, Rust must use dynamic dispatch
+- The compiler doesn’t know all the types that might be used with the code that’s using trait objects, so it doesn’t know which method implemented on which type to call
+- Instead, at runtime, Rust uses the pointers inside the trait object to know which method to call
+- Dynamic dispatch also prevents the compiler from choosing to inline a method’s code, which in turn prevents some optimizations
+- However, we did get extra flexibility in the code
 
 ## Implementing an Object-Oriented Design Pattern
 
-- follow the code [step by step](https://doc.rust-lang.org/book/ch17-03-oo-design-patterns.html)
+- The state pattern is an object-oriented design pattern
+- The states are represented by a set of state objects, and the value’s behavior changes based on its state
+- First, we’re going to implement the state pattern in a more traditional object-oriented way, then we’ll use an approach that’s a bit more natural in Rust
+- The final functionality will look like this:
+  - A blog post starts as an empty draft.
+  - When the draft is done, a review of the post is requested.
+  - When the post is approved, it gets published.
+  - Only published blog posts return content to print, so unapproved posts can’t accidentally be published.
+- This workflow in code form
+
+```rust
+use blog::Post;
+
+fn main() {
+    let mut post = Post::new();
+
+    post.add_text("I ate a salad for lunch today");
+    assert_eq!("", post.content());
+
+    post.request_review();
+    assert_eq!("", post.content());
+
+    post.approve();
+    assert_eq!("I ate a salad for lunch today", post.content());
+}
+```
+
+### Defining Post and Creating a New Instance in the Draft State
+
+- We’ll start with the definition of the struct and an associated public new function to create an instance of Post
+- We’ll also make a private State trait
+- Post will hold a trait object of Box<dyn State> inside an Option<T> in a private field named state to hold the state object
+-  The state objects are Draft,
+- The state objects are Draft, PendingReview, and Published, and they will all implement the State trait
+
+```rust
+// src/lib.rs
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> Post {
+        Post {
+            state: Some(Box::new(Draft {})),
+            content: String::new(),
+        }
+    }
+}
+
+trait State {}
+
+struct Draft {}
+
+impl State for Draft {}
+```
+
+### Storing the Text of the Post Content
+
+- We implement add_text method, rather than exposing the content field as pub
+- The add_text method takes a mutable reference to self, because we’re changing the Post instance that we’re calling add_text on
+- We then call push_str on the String in content and pass the text argument to add to the saved content
+
+```rust
+impl Post {
+    // --snip--
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+}
+```
+
+### Ensuring the Content of a Draft Post Is Empty
+
+- We still want the content method to return an empty string slice because the post is still in the draft state
+- Let’s implement the content method with the simplest thing that will fulfill this requirement: always returning an empty string slice
+- We’ll change this later once we implement the ability to change a post’s state so it can be published
+
+```rust
+impl Post {
+    // --snip--
+    pub fn content(&self) -> &str {
+        ""
+    }
+}
+```
+
+### Requesting a Review of the Post Changes Its State
+
+- We need to add functionality to request a review of a post, which should change its state from Draft to PendingReview
+- We give Post a public method named request_review that will take a mutable reference to self
+- Then we call an internal request_review method on the current state of Post, and this second request_review method consumes the current state and returns a new state
+- We add the request_review method to the State trait; all types that implement the trait will now need to implement the request_review method
+- Note that rather than having self, &self, or &mut self as the first parameter of the method, we have self: Box<Self>. This syntax means the method is only valid when called on a Box holding the type
+- This syntax takes ownership of Box<Self>, invalidating the old state so the state value of the Post can transform into a new state
+
+```rust
+impl Post {
+    // --snip--
+    pub fn request_review(&mut self) {
+        // To consume the old state, the request_review method needs to take ownership of the state value. This is where the Option in the state field of Post comes in: we call the take method to take the Some value out of the state field and leave a None in its place
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.request_review())
+        }
+    }
+}
+
+trait State {
+    fn request_review(self: Box<Self>) -> Box<dyn State>;
+}
+
+struct Draft {}
+
+impl State for Draft {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        // The request_review method on Draft returns a new, boxed instance of a new PendingReview struct, which represents the state when a post is waiting for a review
+        Box::new(PendingReview {})
+    }
+}
+
+struct PendingReview {}
+
+impl State for PendingReview {
+   // The PendingReview struct also implements the request_review method but doesn’t do any transformations. Rather, it returns itself, because when we request a review on a post already in the PendingReview state, it should stay in the PendingReview state.
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+}
+```
+
+- Now we can start seeing the advantages of the state pattern: the request_review method on Post is the same no matter its state value. Each state is responsible for its own rules
+
+### Adding approve to Change the Behavior of content
+
+- The approve method will be similar to the request_review method: it will set state to the value that the current state says it should have when that state is approved
+- We add the approve method to the State trait and add a new struct that implements State, the Published state.
+
+```rust
+impl Post {
+    // --snip--
+    pub fn approve(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.approve())
+        }
+    }
+}
+
+trait State {
+    fn request_review(self: Box<Self>) -> Box<dyn State>;
+    fn approve(self: Box<Self>) -> Box<dyn State>;
+}
+
+struct Draft {}
+
+impl State for Draft {
+    // --snip--
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+}
+
+struct PendingReview {}
+
+impl State for PendingReview {
+    // --snip--
+    // Similar to the way request_review on PendingReview works, if we call the approve method on a Draft, it will have no effect because approve will return self. When we call approve on PendingReview, it returns a new, boxed instance of the Published struct
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        Box::new(Published {})
+    }
+}
+
+struct Published {}
+
+// Published struct implements the State trait, and for both the request_review method and the approve method, it returns itself, because the post should stay in the Published state in those cases
+impl State for Published {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+}
+```
+
+- Now we need to update the content method on Post
+- We call a content method on the value in state and pass the post instance (that is, self) as an argument. Then we return the value that’s returned from using the content method on the state value
+- We call the `as_ref` method on the Option because `we want a reference to the value inside the Option rather than ownership of the value`. Because state is an Option<Box<dyn State>>, when we call as_ref, an Option<&Box<dyn State>> is returned. If we didn’t call as_ref, we would get an error because we can’t move state out of the borrowed &self of the function parameter
+- We then call the unwrap method, which we know will never panic, because we know the methods on Post ensure that state will always contain a Some value when those methods are done
+
+```rust
+impl Post {
+    // --snip--
+    pub fn content(&self) -> &str {
+        self.state.as_ref().unwrap().content(self)
+    }
+    // --snip--
+}
+```
+
+- When we call content on the &Box<dyn State>, deref coercion will take effect on the & and the Box so the content method will ultimately be called on the type that implements the State trait
+- We add a default implementation for the content method that returns an empty string slice. That means we don’t need to implement content on the Draft and PendingReview structs
+- The Published struct will override the content method and return the value in post.content
+- Note that we need lifetime annotations on this method. We’re taking a reference to a post as an argument and returning a reference to part of that post, so the lifetime of the returned reference is related to the lifetime of the post argument.
+
+```rust
+trait State {
+    // --snip--
+    fn content<'a>(&self, post: &'a Post) -> &'a str {
+        ""
+    }
+}
+
+// --snip--
+struct Published {}
+
+impl State for Published {
+    // --snip--
+    fn content<'a>(&self, post: &'a Post) -> &'a str {
+        &post.content
+    }
+}
+```
+
+### Trade-offs of the State Pattern
+
+- We’ve shown that Rust is capable of implementing the object-oriented state pattern to encapsulate the different kinds of behavior a post should have in each state
+- The methods on Post know nothing about the various behaviors
+- If we were to create an alternative implementation that didn’t use the state pattern, we might instead use match expressions in the methods on Post or even in the main code that checks the state of the post and changes behavior in those places
+- The implementation using the state pattern is easy to extend to add more functionality
+- One downside of the state pattern is that, because the states implement the transitions between states, some of the states are coupled to each other
+- Another downside is that we’ve duplicated some logic. To eliminate some of the duplication, we might try to make default implementations for the request_review and approve methods on the State trait that return self;
+- By implementing the state pattern exactly as it’s defined for object-oriented languages, we’re not taking as full advantage of Rust’s strengths as we could
+
+### Encoding States and Behavior as Types
+
+- We’ll show you how to rethink the state pattern to get a different set of trade-offs. Rather than encapsulating the states and transitions completely so outside code has no knowledge of them, we’ll encode the states into different types
+
+```rust
+fn main() {
+    let mut post = Post::new();
+
+    post.add_text("I ate a salad for lunch today");
+    assert_eq!("", post.content());
+}
+```
+
+- We still enable the creation of new posts in the draft state using Post::new and the ability to add text to the post’s content. But instead of having a content method on a draft post that returns an empty string, we’ll make it so draft posts don’t have the content method at all
+- Both the Post and DraftPost structs have a private content field that stores the blog post text. 
+- The structs no longer have the state field because we’re moving the encoding of the state to the `types of the structs`
+- The Post struct will represent a published post, and it has a content method that returns the content.
+
+```rust
+pub struct Post {
+    content: String,
+}
+
+// DraftPost does not have a content method defined! So now the program ensures all posts start as draft posts
+pub struct DraftPost {
+    content: String,
+}
+
+impl Post {
+    // We still have a Post::new function, but instead of returning an instance of Post, it returns an instance of DraftPost
+    pub fn new() -> DraftPost {
+        // Because content is private and there aren’t any functions that return Post, it’s not possible to create an instance of Post right now
+        DraftPost {
+            content: String::new(),
+        }
+    }
+
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+}
+
+impl DraftPost {
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+}
+```
+
+### Implementing Transitions as Transformations into Different Types
+
+- We want to enforce the rule that a draft post has to be reviewed and approved before it can be published
+
+```rust
+impl DraftPost {
+    // --snip--
+    pub fn request_review(self) -> PendingReviewPost {
+        PendingReviewPost {
+            content: self.content,
+        }
+    }
+}
+
+pub struct PendingReviewPost {
+    content: String,
+}
+
+impl PendingReviewPost {
+    // The request_review and approve methods take ownership of self, thus consuming the DraftPost and PendingReviewPost instances and transforming them into a PendingReviewPost and a published Post
+    pub fn approve(self) -> Post {
+        Post {
+            content: self.content,
+        }
+    }
+}
+```
+
+- We also have to make some small changes to main. The request_review and approve methods return new instances rather than modifying the struct they’re called on, so we need to add more let post = shadowing assignments to save the returned instances
+- The changes we needed to make to main to reassign post mean that this implementation doesn’t quite follow the object-oriented state pattern anymore: the transformations between the states are no longer encapsulated entirely within the Post implementation
+
+```rust
+use blog::Post;
+
+fn main() {
+    let mut post = Post::new();
+
+    post.add_text("I ate a salad for lunch today");
+
+    let post = post.request_review();
+
+    let post = post.approve();
+
+    assert_eq!("I ate a salad for lunch today", post.content());
+}
+```
 
 # Patterns and MAtching
 
