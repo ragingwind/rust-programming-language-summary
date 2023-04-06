@@ -8552,8 +8552,760 @@ pub fn sql(input: TokenStream) -> TokenStream {
 
 # Final Project: Building a Multithreaded Web Server
 
-## A Single Threaded Web Server
+1. Learn a bit about TCP and HTTP.
+2. Listen for TCP connections on a socket.
+3. Parse a small number of HTTP requests.
+4. Create a proper HTTP response.
+5. Improve the throughput of our server with a thread pool.
 
-## Turning our Single Threaded Server into a Multithreaded Server
+## Building a Single-Threaded Web Server
+
+### Listening to the TCP Connection
+
+- Let’s make a new project in the usual fashion
+
+```sh
+cargo new hello
+```
+
+- Our web server needs to listen to a TCP connection, so that’s the first part we’ll work on
+
+```rust
+// src/main.rs
+// The standard library offers a std::net module 
+use std::net::TcpListener;
+
+fn main() {
+    // Using TcpListener, we can listen for TCP connections at the address 127.0.0.1:7878
+    // The bind function in this scenario works like the new function in that it will return a new TcpListener instance
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+
+    // The incoming method on TcpListener returns an iterator that gives us a sequence of streams (more specifically, streams of type TcpStream)
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+
+        println!("Connection established!");
+    }
+}
+```
+
+### Reading the Request
+
+- Let’s implement the functionality to read the request from the browser! 
+
+```rust
+use std:: {
+    // Bring std::io::prelude and std::io::BufReader into scope to get access to traits and types that let us read from and write to the stream
+    io::{prelude::*, BufReader},
+    net::{TcpListener, TcpStream},
+};
+
+
+fn main() {
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+
+        handle_connection(stream);
+    }
+}
+
+fn handle_connection(mut stream: TcpStream) {
+    // we create a new BufReader instance that wraps a 
+    // mutable reference to the stream
+    let buf_reader = BufReader::new(&stream);
+    // We create a variable named http_request to collect the lines of the request the browser sends to our server. We indicate that we want to collect these lines in a vector by adding the Vec<_> type annotation
+    let http_reques: Vec<_> = buf_reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
+
+    print!("Request: {:#?}", http_reques);
+}
+```
+
+### A Closer Look at an HTTP Request
+
+- HTTP is a text-based protocol, and a request takes this format:
+- The first part of the request line indicates the method being used, such as GET or POST, which describes how the client is making this request. Our client used a GET request, which means it is asking for information.
+- The next part of the request line is /, which indicates the Uniform Resource Identifier (URI) the client is requesting
+- The last part is the HTTP version the client uses, and then the request line ends in a CRLF sequence
+
+```
+Method Request-URI HTTP-Version CRLF
+headers CRLF
+message-body
+```
+
+### Writing a Response
+
+- We’re going to implement sending data in response to a client request. Responses have the following format:
+
+```
+HTTP-Version Status-Code Reason-Phrase CRLF
+headers CRLF
+message-body
+```
+
+- Here is an example response that uses HTTP version 1.1
+
+```
+HTTP/1.1 200 OK\r\n\r\n
+```
+
+- Printing the request data and replace it with the code 
+
+```rust
+fn handle_connection(mut stream: TcpStream) {
+    let buf_reader = BufReader::new(&mut stream);
+    let http_request: Vec<_> = buf_reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
+
+    let response = "HTTP/1.1 200 OK\r\n\r\n";
+
+    stream.write_all(response.as_bytes()).unwrap();
+}
+```
+
+### Returning Real HTML
+
+- Let’s implement the functionality for returning more than a blank page
+- reate the new file hello.html in the root of your project directory, not in the src directory
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Hello!</title>
+  </head>
+  <body>
+    <h1>Hello!</h1>
+    <p>Hi from Rust</p>
+  </body>
+</html>
+```
+
+- we’ll modify handle_connection to read the HTML file
+
+```rust
+use std::{
+    fs,
+    io::{prelude::*, BufReader},
+    net::{TcpListener, TcpStream},
+};
+// --snip--
+
+fn handle_connection(mut stream: TcpStream) {
+    let buf_reader = BufReader::new(&mut stream);
+    let http_request: Vec<_> = buf_reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
+
+    let status_line = "HTTP/1.1 200 OK";
+    let contents = fs::read_to_string("hello.html").unwrap();
+    let length = contents.len();
+
+    let response =
+        format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+
+    stream.write_all(response.as_bytes()).unwrap();
+}
+```
+
+### Validating the Request and Selectively Responding
+
+- Let’s add functionality to check that the browser is requesting / before returning the HTML file and return an error if the browser requests anything else. For this we need to modify handle_connection
+
+```rust
+// --snip--
+
+fn handle_connection(mut stream: TcpStream) {
+    let buf_reader = BufReader::new(&mut stream);
+    // The first unwrap takes care of the Option and stops the program if the iterator has no items. The second unwrap handles the Result and has the same effect as the unwrap that was in the map added in the next line
+    let request_line = buf_reader.lines().next().unwrap().unwrap();
+
+    if request_line == "GET / HTTP/1.1" {
+        let status_line = "HTTP/1.1 200 OK";
+        let contents = fs::read_to_string("hello.html").unwrap();
+        let length = contents.len();
+
+        let response = format!(
+            "{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}"
+        );
+
+        stream.write_all(response.as_bytes()).unwrap();
+    } else {
+        // some other request
+    }
+}
+```
+
+- Now let’s add the code in Listing 20-7 to the else block to return a response with the status code 404
+
+```rust
+// --snip--
+} else {
+    let status_line = "HTTP/1.1 404 NOT FOUND";
+    let contents = fs::read_to_string("404.html").unwrap();
+    let length = contents.len();
+
+    let response = format!(
+        "{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}"
+    );
+
+    stream.write_all(response.as_bytes()).unwrap();
+}
+```
+
+## A Touch of Refactoring
+
+- Shows the resulting code after replacing the large if and else blocks
+  - Start the server using cargo run
+  - Then open two browser windows: one for http://127.0.0.1:7878/ and the other for http://127.0.0.1:7878/sleep
+  - If you enter the / URI a few times, as before, you’ll see it respond quickly
+  - But if you enter /sleep and then load /, you’ll see that / waits until sleep has slept for its full 5 seconds before loading.
+
+```rust
+// --snip--
+
+fn handle_connection(mut stream: TcpStream) {
+    // --snip--
+
+    let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
+        ("HTTP/1.1 200 OK", "hello.html")
+    } else {
+        ("HTTP/1.1 404 NOT FOUND", "404.html")
+    };
+
+    let contents = fs::read_to_string(filename).unwrap();
+    let length = contents.len();
+
+    let response =
+        format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+
+    stream.write_all(response.as_bytes()).unwrap();
+}
+```
+
+## Turning Our Single-Threaded Server into a Multithreaded Server
+
+### Simulating a Slow Request in the Current Server Implementation
+
+- Implements handling a request to /sleep with a simulated slow response that will cause the server to sleep for 5 seconds before responding
+
+```rust
+use std::{
+    fs,
+    io::{prelude::*, BufReader},
+    net::{TcpListener, TcpStream},
+    thread,
+    time::Duration,
+};
+// --snip--
+
+fn handle_connection(mut stream: TcpStream) {
+    // --snip--
+
+    // We switched from if to match now that we have three cases
+    let (status_line, filename) = match &request_line[..] {
+        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
+        "GET /sleep HTTP/1.1" => {
+            thread::sleep(Duration::from_secs(5));
+            ("HTTP/1.1 200 OK", "hello.html")
+        }
+        _ => ("HTTP/1.1 404 NOT FOUND", "404.html"),
+    };
+
+    // --snip--
+}
+```
+
+### Improving Throughput with a Thread Pool
+
+- `thread pool` is a group of spawned threads that are waiting and ready to handle a task
+- When the program receives a new task, it assigns one of the threads in the pool to the task, and that thread will process the task
+- Rather than spawning unlimited threads, then, we’ll have a fixed number of threads waiting in the pool
+- This technique is just one of many ways to improve the throughput of a web server. Other options you might explore are the fork/join model, the single-threaded async I/O model, or the multi-threaded async I/O model
+
+#### Spawning a Thread for Each Request
+
+- First, let’s explore how our code might look if it did create a new thread for every connection
+
+```rust
+fn main() {
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+
+        // thread::spawn will create a new thread and then run the code in the closure in the new thread
+        thread::spawn(|| {
+            handle_connection(stream);
+        });
+    }
+}
+```
+
+#### Creating a Finite Number of Threads
+
+- Shows the hypothetical interface for a ThreadPool struct we want to use instead of thread::spawn
+
+```rust
+fn main() {
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4);
+
+    // ThreadPool::new to create a new thread pool with a configurable number of threads, in this case four
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+
+        // pool.execute has a similar interface as thread::spawn in that it takes a closure the pool should run for each stream
+        pool.execute(|| {
+            handle_connection(stream);
+        });
+    }
+}
+```
+
+#### Building ThreadPool Using Compiler Driven Development
+
+- Great! This error tells us we need a ThreadPool type or module, so we’ll build one now
+- Our ThreadPool implementation will be independent of the kind of work our web server is doing
+- Create a src/lib.rs that contains the following, which is the simplest definition of a ThreadPool struct that we can have for now:
+
+```rust
+// src/lib.rs
+pub struct ThreadPool;
+```
+
+- Then edit main.rs file to bring ThreadPool into scope from the library crate by adding the following code to the top of src/main.rs:
+
+```rust
+// src/main.rs
+use hello::ThreadPool;
+```
+
+- This error indicates that next we need to create an associated function named new for ThreadPool
+
+```rust
+// src/lib.rs
+pub struct ThreadPool;
+
+impl ThreadPool {
+    pub fn new(size: usize) -> ThreadPool {
+        ThreadPool
+    }
+}
+```
+
+- We’ll define the execute method on ThreadPool to take a closure as a parameter
+- We can take closures as parameters with three different traits: Fn, FnMut, and FnOnce. We need to decide which kind of closure to use here. We know we’ll end up doing something similar to the standard library thread::spawn implementation
+- Let’s create an execute method on ThreadPool that will take a generic parameter of type F with these bounds:
+
+```rust
+// src/lib.rs
+impl ThreadPool {
+    // --snip--
+    pub fn execute<F>(&self, f: F)
+    where
+        // The F type parameter also has the trait bound Send and the lifetime bound 'static, which are useful in our situation: we need Send to transfer the closure from one thread to another and 'static because we don’t know how long the thread will take to execute
+        F: FnOnce() + Send + 'static,
+    {
+    }
+}
+```
+
+#### Validating the Number of Threads in new
+
+- Let’s implement the bodies of these functions with the behavior we want. To start, , let’s think about new
+
+```rust
+impl ThreadPool {
+    // We’ve also added some documentation for our ThreadPool with doc comments.
+    /// Create a new ThreadPool.
+    ///
+    /// The size is the number of threads in the pool.
+    ///
+    /// # Panics
+    ///
+    /// The `new` function will panic if the size is zero.
+    pub fn new(size: usize) -> ThreadPool {
+        // However, a pool with zero threads also makes no sense, yet zero is a perfectly valid usize
+        assert!(size > 0);
+
+        ThreadPool
+    }
+
+    // --snip--
+}
+```
+
+#### Creating Space to Store the Threads
+
+- The spawn function returns a JoinHandle<T>, where T is the type that the closure returns. Let’s try using JoinHandle too and see what happens
+
+```rust
+// We’ve brought std::thread into scope in the library crate, because we’re using thread::JoinHandle
+use std::thread;
+
+pub struct ThreadPool {
+    // We’ve changed the definition of ThreadPool to hold a vector of thread::JoinHandle<()> instances, initialized the vector with a capacity of size, set up a for loop that will run some code to create the threads, and returned a ThreadPool instance containing them.
+    threads: Vec<thread::JoinHandle<()>>,
+}
+
+impl ThreadPool {
+    // --snip--
+    pub fn new(size: usize) -> ThreadPool {
+        assert!(size > 0);
+
+        let mut threads = Vec::with_capacity(size);
+
+        for _ in 0..size {
+            // create some threads and store them in the vector
+        }
+
+        ThreadPool { threads }
+    }
+    // --snip--
+}
+```
+
+#### A Worker Struct Responsible for Sending Code from the ThreadPool to a Thread
+
+- We’ll implement this behavior by introducing a new data structure between the ThreadPool and the threads that will manage this new behavior. We’ll call this data structure `Worker`, `which is a common term in pooling implementations`
+- The Worker picks up code that needs to be run and runs the code in the Worker’s thread
+- Instead of storing a vector of JoinHandle<()> instances in the thread pool, we’ll store instances of the Worker struct. Each Worker will store a single JoinHandle<()> instance. Then we’ll implement a method on Worker that will take a closure of code to run and send it to the already running thread for execution
+
+```rust
+// src/lib.rs
+use std::thread;
+
+pub struct ThreadPool {
+    // Change ThreadPool to hold a vector of Worker instances.
+    workers: Vec<Worker>,
+}
+
+impl ThreadPool {
+    // --snip--
+    pub fn new(size: usize) -> ThreadPool {
+        assert!(size > 0);
+
+        let mut workers = Vec::with_capacity(size);
+
+        // In ThreadPool::new, use the for loop counter to generate an id, create a new Worker with that id, and store the worker in the vector
+        for id in 0..size {
+            workers.push(Worker::new(id));
+        }
+
+        ThreadPool { workers }
+    }
+    // --snip--
+}
+
+// Define a Worker struct that holds an id and a JoinHandle<()>
+struct Worker {
+    id: usize,
+    thread: thread::JoinHandle<()>,
+}
+
+impl Worker {
+    // Define a Worker::new function that takes an id number and returns a Worker instance that holds the id and a thread spawned with an empty closure
+    fn new(id: usize) -> Worker {
+        let thread = thread::spawn(|| {});
+
+        Worker { id, thread }
+    }
+}
+```
+
+#### Sending Requests to Threads via Channels
+
+- We’ll use a channel to function as the queue of jobs, and execute will send a job from the ThreadPool to the Worker instances, which will send the job to its thread
+
+```rust
+// src/lib.rs
+use std::{
+    sync::{mpsc, Arc, Mutex},
+    thread,
+};
+
+pub struct ThreadPool {
+    workers: Vec<Worker>,
+    sender: mpsc::Sender<Job>,
+}
+
+// We’ll create a new Job struct that will hold the closures we want to send down the channel.
+struct Job;
+
+impl ThreadPool {
+    // --snip--
+    pub fn new(size: usize) -> ThreadPool {
+        assert!(size > 0);
+
+        let (sender, receiver) = mpsc::channel();
+
+        // The code is trying to pass receiver to multiple Worker instances
+        // The channel implementation that Rust provides is multiple producer, single consumer
+        // This means we can’t just clone the consuming end of the channel
+        // Share ownership across multiple threads and allow the threads to mutate the value, we need to use Arc<Mutex<T>>. The Arc type will let multiple workers own the receiver, and Mutex will ensure that only one worker gets a job from the receiver at a time
+        let receiver = Arc::new(Mutex::new(receiver));
+
+        let mut workers = Vec::with_capacity(size);
+
+        for id in 0..size {
+            workers.push(Worker::new(id, Arc::clone(&receiver)));
+        }
+
+        ThreadPool { workers, sender }
+    }
+    // --snip--
+}
+
+// --snip--
+
+impl Worker {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        let thread = thread::spawn(|| {
+            receiver;
+        });
+
+        Worker { id, thread }
+    }
+}
+```
+
+#### Implementing the execute Method
+
+- Let’s finally implement the execute method on ThreadPool. We’ll also change Job from a struct to a type alias for a trait object that holds the type of closure that execute receives
+
+```rust
+// src/lib.rs
+// --snip--
+
+type Job = Box<dyn FnOnce() + Send + 'static>;
+
+impl ThreadPool {
+    // --snip--
+
+    pub fn execute<F>(&self, f: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        // reating a new Job instance using the closure we get in execute
+        let job = Box::new(f);
+        // We send that job down the sending end of the channel.
+        // We’re calling unwrap on send for the case that sending fails. This might happen if, for example, we stop all our threads from executing, meaning the receiving end has stopped receiving new messages. At the moment, we can’t stop our threads from executing: our threads continue executing as long as the pool exists
+        self.sender.send(job).unwrap();
+    }
+}
+
+/ --snip--
+
+impl Worker {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        let thread = thread::spawn(move || loop {
+            // Call lock on the receiver to acquire the mutex, and then we call unwrap to panic on any errors
+            let job = receiver
+              // Acquiring a lock might fail if the mutex is in a poisoned state, which can happen if some other thread panicked while holding the lock rather than releasing the lock. In this situation, calling unwrap to have this thread panic is the correct action to take
+              .lock().unwrap()
+              // If we get the lock on the mutex, we call recv to receive a Job from the channel. A final unwrap moves past any errors here as well, which might occur if the thread holding the sender has shut down, similar to how the send method returns Err if the receiver shuts down.
+              .recv().unwrap();
+
+            println!("Worker {id} got a job; executing.");
+
+            job();
+        });
+
+        Worker { id, thread }
+    }
+}
+```
+
+- This code compiles and runs but doesn’t result in the desired threading behavior: a slow request will still cause other requests to wait to be processed. The reason is somewhat subtle: the Mutex struct has no public unlock method because the ownership of the lock is based on the lifetime of the MutexGuard<T> within the LockResult<MutexGuard<T>> that the lock method returns
+
+```rust
+// --snip--
+
+impl Worker {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        // our closure being passed to thread::spawn still only references the receiving end of the channel. Instead, we need the closure to loop forever, asking the receiving end of the channel for a job and running the job when it gets one
+        let thread = thread::spawn(move || loop {
+            while let Ok(job) = receiver.lock().unwrap().recv() {
+                println!("Worker {id} got a job; executing.");
+
+                job();
+            }
+        });
+
+        Worker { id, thread }
+    }
+}
+```
 
 ## Graceful Shutdown and Cleanup
+
+We’ll implement the Drop trait to call join on each of the threads in the pool so they can finish the requests they’re working on before closing. Then we’ll implement a way to tell the threads they should stop accepting new requests and shut down
+
+### Implementing the Drop Trait on ThreadPool
+
+- Let’s start with implementing Drop on our thread pool. `When the pool is dropped, our threads should all join to make sure they finish their work`
+
+```rust
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            worker.thread.join().unwrap();
+                          ^^^^ method not found in `Option<JoinHandle<()>>`
+        }
+    }
+}
+```
+
+- We can’t call join because we only have a mutable borrow of each worker and join
+- To solve this issue, we need to move the thread out of the Worker instance that owns thread so join can consume the thread
+
+```rust
+struct Worker {
+    id: usize,
+    thread: Option<thread::JoinHandle<()>>,
+}
+
+impl Worker {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        // --snip--
+
+        Worker {
+            id,
+            thread: Some(thread),
+        }
+    }
+}
+```
+
+- We mentioned earlier that we intended to call take on the Option value to move thread out of worker
+
+```rust
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            if let Some(thread) = worker.thread.take() {
+                thread.join().unwrap();
+            }
+        }
+    }
+}
+```
+
+### Signaling to the Threads to Stop Listening for Jobs
+
+- However, the bad news is this code doesn’t function the way we want it to yet. The key is the logic in the closures run by the threads of the Worker instances: at the moment, we call join, but that won’t shut down the threads because they loop forever looking for jobs
+- We’ll need a change in the ThreadPool drop implementation and then a change in the Worker loop
+
+```rust
+pub struct ThreadPool {
+    workers: Vec<Worker>,
+    // We use the same Option and take technique as we did with the thread to be able to move sender out of ThreadPool
+    // Dropping sender closes the channel, which indicates no more messages will be sent
+    sender: Option<mpsc::Sender<Job>>,
+}
+// --snip--
+impl ThreadPool {
+    pub fn new(size: usize) -> ThreadPool {
+        // --snip--
+
+        ThreadPool {
+            workers,
+            sender: Some(sender),
+        }
+    }
+
+    pub fn execute<F>(&self, f: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        let job = Box::new(f);
+
+        self.sender.as_ref().unwrap().send(job).unwrap();
+    }
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        drop(self.sender.take());
+
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            if let Some(thread) = worker.thread.take() {
+                thread.join().unwrap();
+            }
+        }
+    }
+}
+```
+
+- We change the Worker loop to gracefully exit the loop in that case, which means the threads will finish when the ThreadPool drop implementation calls join on them
+
+```rust
+impl Worker {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        let thread = thread::spawn(move || loop {
+            let message = receiver.lock().unwrap().recv();
+
+            match message {
+                Ok(job) => {
+                    println!("Worker {id} got a job; executing.");
+
+                    job();
+                }
+                Err(_) => {
+                    println!("Worker {id} disconnected; shutting down.");
+                    break;
+                }
+            }
+        });
+
+        Worker {
+            id,
+            thread: Some(thread),
+        }
+    }
+}
+```
+
+- Test graceful shutdown by modifying main to accept only two requests before gracefully shutting down the server
+
+```rust
+fn main() {
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4);
+
+    // To see this code in action, let’s modify main to accept only two requests before gracefully shutting down the server
+    for stream in listener.incoming().take(2) {
+        let stream = stream.unwrap();
+
+        pool.execute(|| {
+            handle_connection(stream);
+        });
+    }
+
+    println!("Shutting down.");
+}
+```
+
+
+
+
+
